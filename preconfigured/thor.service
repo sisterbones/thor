@@ -4,7 +4,8 @@ Description=Thor lightning detection and alert system
 [Service]
 User=thor
 Group=thor
-ExecStart=/opt/thor/.venv/bin/gunicorn "/opt/thor/thor:create_app()"
+WorkingDirectory=/opt/thor
+ExecStart=/opt/thor/.venv/bin/gunicorn "thor:create_app()"
 
 [Install]
 WantedBy=multi-user.target
