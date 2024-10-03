@@ -1,0 +1,22 @@
+<!DOCTYPE html>
+<html lang="en" data-bs-theme="dark">
+<head>
+    <meta charset="UTF-8">
+    <title>{% block title %}{% endblock %}</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='/vendor/bootstrap/dist/css/bootstrap.css') }}">
+    <script src="{{ url_for('static', filename='/vendor/bootstrap/dist/js/bootstrap.min.js') }}" defer></script>
+</head>
+<body>
+    <header class="navbar bg-body-tertiary">
+        <div class="container-fluid d-lg-flex">
+            <a href="#" class="navbar-brand">{{ config.get('app_name', 'Thor') }}</a>
+            <nav class="nav nav-pills justify-content-lg-center">
+                <a href="#" class="nav-item nav-link active">Dashboard</a>
+            </nav>
+            <div class="justify-content-lg-end">
+                <a href="#" class="btn"><i data-feather="log-out"></i> Sign out</a>
+            </div>
+        </div>
+    </header>
+</body>
+</html>
