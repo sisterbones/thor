@@ -1,0 +1,3 @@
+[submodule "thor/static/vendor/bootstrap"]
+	path = thor/static/vendor/bootstrap
+	url = https://github.com/twbs/bootstrap.git
