@@ -47,12 +47,13 @@ systemctl restart mosquitto
 
 echo '- Downloading thor...'
 if [[ ! -d "$INSTALLDIR" ]]; then
-    git clone git@github.com:sisterbones/thor.git $INSTALLDIR;
+    git clone git@github.com:sisterbones/thor.git $INSTALLDIR
     cd $INSTALLDIR
+    git submodule update --init --recursive
   else
     echo '  ! Git repo for thor already found. Updating repo...'
     cd $INSTALLDIR
-    git pull
+    git pull --recurse-submodules
     cd ..
 fi
 
