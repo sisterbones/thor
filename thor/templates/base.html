@@ -2,21 +2,34 @@
 <html lang="en" data-bs-theme="dark">
 <head>
     <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>{% block title %}{% endblock %}</title>
-    <link rel="stylesheet" href="{{ url_for('static', filename='/vendor/bootstrap/dist/css/bootstrap.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='/vendor/bootstrap/dist/css/bootstrap.min.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='/styles/style.css') }}">
     <script src="{{ url_for('static', filename='/vendor/bootstrap/dist/js/bootstrap.min.js') }}" defer></script>
+    <script src="{{ url_for('static', filename='/vendor/font-awesome/js/fontawesome.js') }}" defer></script>
+    <script src="{{ url_for('static', filename='/vendor/font-awesome/js/solid.js') }}" defer></script>
 </head>
 <body>
-    <header class="navbar bg-body-tertiary">
+    <header class="navbar navbar-expand-lg bg-body-tertiary">
         <div class="container-fluid d-lg-flex">
+            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#mainNavigation" aria-controls="mainNavigation" aria-expanded="false" aria-label="Toggle navigation">
+                <span class="navbar-toggler-icon"></span>
+            </button>
             <a href="#" class="navbar-brand">{{ config.get('app_name', 'Thor') }}</a>
-            <nav class="nav nav-pills justify-content-lg-center">
-                <a href="#" class="nav-item nav-link active">Dashboard</a>
-            </nav>
-            <div class="justify-content-lg-end">
-                <a href="#" class="btn"><i data-feather="log-out"></i> Sign out</a>
+            <div class="container-fluid collapse navbar-collapse me-auto d-lg-flex" id="mainNavigation">
+                <nav class="navbar-nav nav nav-pills justify-content-lg-center flex-grow-1">
+                    <a href="#" class="nav-item nav-link active">Dashboard</a>
+                </nav>
+                <div class="justify-content-lg-end d-lg-flex gap-lg-3 padding-1rem">
+                    <a href="#" class="nav-item nav-link"><i class="fa-solid fa-fw fa-sign-out"></i> Sign out</a>
+                </div>
             </div>
+
         </div>
     </header>
+
+    
+
 </body>
 </html>
