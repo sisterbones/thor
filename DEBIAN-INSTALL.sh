@@ -10,6 +10,8 @@ MQTT_PASSWORD="$(head /dev/urandom | tr -dc A-Za-z0-9 | head -c 13 ; echo '')"
 DL_SERVER='http://192.168.1.1:8000'
 TMPDIR="/tmp/thor"
 INSTALLDIR="/opt/thor"
+CONFIGDIR="/etc/thor"
+VARDIR="/var/lib/thor"
 SERVICE_USER="thor"
 
 echo '- Installing prerequisites...'
@@ -29,10 +31,10 @@ else
 fi
 
 # Create configuration folder
-echo '- Creating configuration folder at /etc/thor'
-mkdir /etc/thor -p
-touch /etc/thor/mosquitto_pwd
-chown mosquitto:mosquitto /etc/thor/mosquitto_pwd
+echo "- Creating configuration folder at $CONFIGDIR"
+mkdir $CONFIGDIR -p
+touch $CONFIGDIR/mosquitto_pwd
+chown mosquitto:mosquitto $CONFIGDIR/mosquitto_pwd
 
 # Download mosquitto configuration
 echo '  > Download mqtt configuration to /etc/mosquitto/conf.d/thor-mosquitto.conf'
@@ -40,10 +42,19 @@ wget -O /etc/mosquitto/conf.d/thor-mosquitto.conf "$DL_SERVER/preconfigured/thor
 
 echo '  > Set password for mosquitto'
 mosquitto_passwd -b /etc/thor/mosquitto_pwd thor "$MQTT_PASSWORD"
-echo "$MQTT_PASSWORD"
 
 echo '  > Restart mosquitto'
 systemctl restart mosquitto
+
+echo '  > Create .env'
+if [[ -f "$CONFIGDIR/.env" ]]; then
+    # .env exists
+    printf '    ! .env already exists. copying to %s/.env.backup' "$CONFIGDIR"
+    mv $CONFIGDIR/.env $CONFIGDIR/.env.backup
+fi
+
+touch $CONFIGDIR/.env
+{ printf "MQTT_BROKER=localhost\n"; printf "MQTT_USER=thor\n"; printf "MQTT_PASSWORD=%s\n" "$MQTT_PASSWORD"; } >> $CONFIGDIR/.env
 
 echo '- Downloading thor...'
 if [[ ! -d "$INSTALLDIR" ]]; then

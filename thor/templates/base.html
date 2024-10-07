@@ -1,35 +1,44 @@
 <!DOCTYPE html>
-<html lang="en" data-bs-theme="dark">
+<html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>{% block title %}{% endblock %}</title>
-    <link rel="stylesheet" href="{{ url_for('static', filename='/vendor/bootstrap/dist/css/bootstrap.min.css') }}">
-    <link rel="stylesheet" href="{{ url_for('static', filename='/styles/style.css') }}">
+
+    {% assets "scss_all" %}
+        <link rel="stylesheet" href="{{ ASSET_URL }}" />
+    {% endassets %}
     <script src="{{ url_for('static', filename='/vendor/bootstrap/dist/js/bootstrap.min.js') }}" defer></script>
     <script src="{{ url_for('static', filename='/vendor/font-awesome/js/fontawesome.js') }}" defer></script>
     <script src="{{ url_for('static', filename='/vendor/font-awesome/js/solid.js') }}" defer></script>
 </head>
 <body>
     <header class="navbar navbar-expand-lg bg-body-tertiary">
-        <div class="container-fluid d-lg-flex">
-            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#mainNavigation" aria-controls="mainNavigation" aria-expanded="false" aria-label="Toggle navigation">
-                <span class="navbar-toggler-icon"></span>
+        <nav class="container-fluid">
+            <a href="{{ url_for('index') }}" class="navbar-brand mb-0 h1">{{ config.get('APP_TITLE', 'Thor') }}</a>
+            <button class="navbar-toggler" type="button" data-bs-toggle="collapse"
+                    data-bs-target="#mainNavContents" aria-controls="mainNavContents" aria-expanded="true"
+                    aria-label="Toggle Navigation">
+                        <span class="navbar-toggler-icon"></span>
             </button>
-            <a href="#" class="navbar-brand">{{ config.get('app_name', 'Thor') }}</a>
-            <div class="container-fluid collapse navbar-collapse me-auto d-lg-flex" id="mainNavigation">
-                <nav class="navbar-nav nav nav-pills justify-content-lg-center flex-grow-1">
-                    <a href="#" class="nav-item nav-link active">Dashboard</a>
-                </nav>
-                <div class="justify-content-lg-end d-lg-flex gap-lg-3 padding-1rem">
-                    <a href="#" class="nav-item nav-link"><i class="fa-solid fa-fw fa-sign-out"></i> Sign out</a>
-                </div>
+            <div id="mainNavContents" class="collapse navbar-collapse">
+                <ul class="navbar-nav me-auto mb-0 mb-lg-0">
+                    <li class="nav-item">
+                        <a href="{{ url_for('index') }}" class="nav-link {% if url_for(request.endpoint, **request.view_args) == '/' %} active"
+                           aria-current="page{% endif %}">Dashboard</a>
+                    </li>
+                </ul>
             </div>
-
-        </div>
+        </nav>
     </header>
 
-    
+    <main class="container-xxl margin-tb-1rem">
+        {% block content %}{% endblock %}
+    </main>
+
+    <footer>
+
+    </footer>
 
 </body>
 </html>
