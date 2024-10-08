@@ -24,7 +24,6 @@ class WeatherProvider:
             }
         }
 
-
 def met_no_symbol_to_font_awesome(icon):
     """Converts a MET Norway symbol name to a similar Font Awesome icon and summary of icon."""
     mapping = {
@@ -43,8 +42,19 @@ def met_no_symbol_to_font_awesome(icon):
 
     return "circle-question", "Unknown"
 
+class CachingWeatherProvider(WeatherProvider):
+    def __init__(self, lat: float, long: float):
+        super().__init__(lat, long)
 
-class MetNoWeatherProvider(WeatherProvider):
+        self.last_fetched_time = 0
+        self.seconds_to_live = 6000 # 10 minutes
+        self.cached_response = {}
+
+    def fetch(self) -> dict:
+        if (time.time() > last_fetched_time + seconds_to_live):
+            return cached_response
+
+class MetNoWeatherProvider(CachingWeatherProvider):
     """Weather provider using the MET Norway's Location Forcast API. (Requires an internet connection)"""
 
     def __init__(self, lat: float, long: float):
@@ -55,18 +65,24 @@ class MetNoWeatherProvider(WeatherProvider):
 
     def fetch(self) -> dict:
         """Fetches data from the MET Norway Location Forcast API"""
-        data_request = requests.get(
-            self.base_url,
-            {
-                "lat": self.lat,
-                "lon": self.long
-            },
-            headers={
-                "User-Agent": self.user_agent
-            }
-        )
 
-        data = data_request.json()
+        cache = super().fetch()
+
+        if not cache:
+            data_request = requests.get(
+                self.base_url,
+                {
+                    "lat": self.lat,
+                    "lon": self.long
+                },
+                headers={
+                    "User-Agent": self.user_agent
+                }
+            )
+            data = data_request.json()
+            self.cache = data
+        else:
+            data = cache
 
         icon = met_no_symbol_to_font_awesome(data['properties']['timeseries'][0]['data']['next_12_hours']['summary']['symbol_code'])
 
