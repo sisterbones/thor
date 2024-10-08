@@ -1,3 +1,4 @@
+from datetime import datetime
 from io import BytesIO
 from os import environ
 import json
@@ -17,6 +18,10 @@ mqtt = Mqtt()
 scheduler = APScheduler()
 socketio = SocketIO()
 weather = MetNoWeatherProvider(environ.get('HOME_LAT', 0.0), environ.get('HOME_LONG', 0.0))
+
+def get_time(strftime="%H:%M"):
+    # Returns the current time as a string in the format "HH:MM"
+    return datetime.now().strftime(strftime)
 
 def create_app():
     app = Flask(__name__,
@@ -82,7 +87,7 @@ def create_app():
 
     @mqtt.on_connect()
     def mqtt_on_connect(client, userdata, flags, rc):
-        mqtt.publish('thor/status', b'Hub online')
+        mqtt.publish('thor/status', f'{get_time()}: Hub online'.encode('utf-8'))
         publish_weather()
         mqtt.subscribe('thor/ask')
 
