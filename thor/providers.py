@@ -18,9 +18,11 @@ class WeatherProvider:
                 "long": self.long
             },
             "icon": 'circle-question', # Font Awesome icon
+            "source": None,
             "weather": {
                 "temperature": 0.0,
-                "conditions": "unknown"
+                "conditions": "unknown",
+                "headline": "Unknown"
             }
         }
 
@@ -31,7 +33,8 @@ def met_no_symbol_to_font_awesome(icon):
         "fair_day": ("cloud-sun", "Fair skies"),
         "cloudy": ("cloud", "Cloudy"),
         "rain": ("cloud-rain", "Raining"),
-        "partlycloudy_night": ("cloud-moon", "Partly cloudy")
+        "partlycloudy_night": ("cloud-moon", "Partly cloudy"),
+        "partlycloudy_day": ("cloud-sun", "Partly cloudy")
     }
 
     print(icon)
@@ -93,6 +96,7 @@ class MetNoWeatherProvider(CachingWeatherProvider):
                 "long": self.long
             },
             "icon": icon[0], # Font Awesome icon
+            "source": "Norwegian Meteorological Institute",
             "weather": {
                 "temperature": data['properties']['timeseries'][0]['data']['instant']['details']['air_temperature'],
                 "conditions": data['properties']['timeseries'][0]['data']['next_1_hours']['summary']['symbol_code'],

@@ -57,3 +57,31 @@ $color-mode-type: media-query;
     margin-bottom: 1rem;
 }
 
+.grid {
+    display: grid;
+
+    .col-3rem {
+        width: 3rem;
+    }
+}
+
+.font-3rem {
+    font-size: 3rem;
+}
+
+.weather-card > .card-body {
+    display: flex;
+    gap: 1rem;
+
+    #weather-icon {
+        align-self: center;
+    }
+
+    > .texts {
+        flex: 1;
+    }
+}
+
+.text-align-right {
+    text-align: right;
+}

@@ -11,6 +11,11 @@
     <script src="{{ url_for('static', filename='/vendor/bootstrap/dist/js/bootstrap.min.js') }}" defer></script>
     <script src="{{ url_for('static', filename='/vendor/font-awesome/js/fontawesome.js') }}" defer></script>
     <script src="{{ url_for('static', filename='/vendor/font-awesome/js/solid.js') }}" defer></script>
+
+    <script src="/vendor/socket.io.js"></script>
+    <script>
+      const socket = io();
+    </script>
 </head>
 <body>
     <header class="navbar navbar-expand-lg bg-body-tertiary">
