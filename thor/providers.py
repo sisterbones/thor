@@ -54,7 +54,7 @@ class CachingWeatherProvider(WeatherProvider):
         self.cached_response = {}
 
     def fetch(self) -> dict:
-        if time.time() > self.last_fetched_time + self.seconds_to_live:
+        if time.time() <= self.last_fetched_time + self.seconds_to_live:
             return self.cached_response
 
 class MetNoWeatherProvider(CachingWeatherProvider):
@@ -83,13 +83,12 @@ class MetNoWeatherProvider(CachingWeatherProvider):
                 }
             )
             data = data_request.json()
-            self.cache = data
         else:
-            data = cache
+            return cache
 
         icon = met_no_symbol_to_font_awesome(data['properties']['timeseries'][0]['data']['next_12_hours']['summary']['symbol_code'])
 
-        return {
+        response = {
             "timestamp": time.time(),
             "location": {
                 "lat": self.lat,
@@ -103,3 +102,6 @@ class MetNoWeatherProvider(CachingWeatherProvider):
                 "headline": icon[1]
             }
         }
+
+        self.cached_response = response
+        return response
