@@ -54,8 +54,8 @@ class CachingWeatherProvider(WeatherProvider):
         self.cached_response = {}
 
     def fetch(self) -> dict:
-        if (time.time() > last_fetched_time + seconds_to_live):
-            return cached_response
+        if time.time() > self.last_fetched_time + self.seconds_to_live:
+            return self.cached_response
 
 class MetNoWeatherProvider(CachingWeatherProvider):
     """Weather provider using the MET Norway's Location Forcast API. (Requires an internet connection)"""
