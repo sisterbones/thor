@@ -1,10 +1,65 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <title>Title</title>
-</head>
-<body>
+<div class="bg-body-secondary card weather-card">
+    <div class="card-header">
+        <span class="fa-solid fa-fw fa-cloud"></span> Weather
+    </div>
+    <div class="card-body">
+        <div class="row row-flex justify-content-start">
+            <div class="font-3rem col-fluid flex-shrink-0" id="weather-icon">
+                <span class="fa-solid fa-fw fa-spinner fa-spin-pulse"></span>
+            </div>
+            <div class="texts col-fluid flex-grow-1 align-self-center">
+                <div class="h2 margin-0" id="weather-temp">0ºC</div>
+                <div class="col" id="weather-headline">Waiting...</div>
+            </div>
+        </div>
+        <div class="row row-flex justify-content-start text-secondary">
+            <div class="col-fluid">
+                <span class="source"><span class="fa-fw fa-solid fa-book text-truncate"></span> Source: <a class="text-secondary-emphasis" id="weather-source" href="">none</a></span>
+            </div>
+            <div class="col-fluid">
+                <span class="fa-fw fa-solid fa-clock"></span> Updated <time id="weather-updated-time">never</time>
+            </div>
+        </div>
+    </div>
+</div>
 
-</body>
-</html>
+<script>
+    socket.on('connect', (reason) => {
+        console.log("Connected to Thor")
+        socket.emit('ask', JSON.stringify(['weather']));
+    })
+
+    const weatherHeadline = document.getElementById('weather-headline');
+    const weatherIcon = document.getElementById('weather-icon');
+    const weatherTemperature = document.getElementById('weather-temp');
+    const weatherUpdatedTime = document.getElementById('weather-updated-time');
+    const weatherSource = document.getElementById('weather-source');
+
+    const rtf1 = new Intl.RelativeTimeFormat('en', { style: "narrow" });
+
+    let updatedTime = 0;
+
+    socket.on('weather', (msg) => {
+        weatherHeadline.innerText = msg.weather.headline;
+        weatherTemperature.innerText = `${msg.weather.temperature}ºC`;
+        updatedTime = new Date(msg.timestamp * 1000);
+        weatherIcon.innerHTML = `<span class="fa-solid fa-fw fa-${msg.icon}"></span>`;
+        weatherSource.innerText = msg.source.label;
+        weatherSource.href = msg.source.href;
+    })
+
+    function updateUpdatedTime() {
+        const currentDate = new Date();
+        const minutesSinceLastUpdate = (updatedTime-currentDate) / 1000 / 60;
+        let output;
+        if (Math.abs(minutesSinceLastUpdate) <= 1) {
+            output = "just now"
+        } else {
+            output = rtf1.format(Math.round(minutesSinceLastUpdate), 'minutes')
+        }
+
+        weatherUpdatedTime.innerText = output;
+    }
+
+    setInterval(updateUpdatedTime, 500)
+</script>

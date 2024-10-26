@@ -8,13 +8,15 @@
     {% assets "scss_all" %}
         <link rel="stylesheet" href="{{ ASSET_URL }}" />
     {% endassets %}
-    <script src="{{ url_for('static', filename='/vendor/bootstrap/dist/js/bootstrap.min.js') }}" defer></script>
+
+    <script src="{{ url_for('static', filename='/vendor/bootstrap/dist/js/bootstrap.bundle.min.js') }}"></script>
     <script src="{{ url_for('static', filename='/vendor/font-awesome/js/fontawesome.js') }}" defer></script>
     <script src="{{ url_for('static', filename='/vendor/font-awesome/js/solid.js') }}" defer></script>
+    <script src="{{ url_for('static', filename='/vendor/socket.io.js') }}"></script>
+{#    <script src="{{ url_for('static', filename='/vendor/esm-module-shims.js') }}"></script>#}
 
-    <script src="/vendor/socket.io.js"></script>
     <script>
-      const socket = io();
+        const socket = io();
     </script>
 </head>
 <body>
@@ -45,5 +47,53 @@
 
     </footer>
 
+    <div class="toast-container bottom-0 start-0 p-3 position-fixed">
+        <div class="toast text-bg-danger" id="disconnect-toast" role="alert" aria-live="assertive" aria-atomic="true">
+            <div class="toast-header">
+                <strong class="me-auto">Error</strong>
+                <small id="disconnect-time" class="text-body-secondary"></small>
+                <button type="button" class="btn-close" data-bs-dismiss="toast" aria-label="Close"></button>
+            </div>
+            <div class="toast-body">
+                Connection to Thor was lost. Reason:
+                <div id="disconnect-reason"></div>
+            </div>
+        </div>
+
+        <div class="toast" id="reconnect-toast" role="alert" aria-live="assertive" aria-atomic="true">
+            <div class="toast-header">
+                <strong class="me-auto">Error</strong>
+                <small id="disconnect-time" class="text-body-secondary"></small>
+            </div>
+            <div class="toast-body">
+                Connection regained.
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const disconnectToastEl = document.getElementById('disconnect-toast');
+        const disconnectToast = new bootstrap.Toast(disconnectToastEl, {autohide: false});
+        const disconnectReason = document.getElementById('disconnect-reason');
+
+        const reconnectToastEl = document.getElementById('reconnect-toast');
+        const reconnectToast = new bootstrap.Toast(disconnectToastEl);
+
+        socket.on("disconnect", (reason) => {
+            disconnectToast.show()
+            if (socket.active) {
+                disconnectReason.innerText = "Unexpectedly disconnected. Trying to reconnect..."
+            } else {
+                // the connection was forcefully closed by the server or the client itself
+                // in that case, `socket.connect()` must be manually called in order to reconnect
+                disconnectReason.innerText = `${reason}`
+                console.log(reason);
+            }
+        });
+
+        socket.on("connect", (reason) => {
+            disconnectToast.hide()
+        });
+    </script>
 </body>
 </html>

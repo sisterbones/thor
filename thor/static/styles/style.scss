@@ -57,6 +57,10 @@ $color-mode-type: media-query;
     margin-bottom: 1rem;
 }
 
+.margin-0 {
+    margin: 0;
+}
+
 .grid {
     display: grid;
 
@@ -70,8 +74,7 @@ $color-mode-type: media-query;
 }
 
 .weather-card > .card-body {
-    display: flex;
-    gap: 1rem;
+    //gap: 1rem;
 
     #weather-icon {
         align-self: center;
@@ -79,6 +82,15 @@ $color-mode-type: media-query;
 
     > .texts {
         flex: 1;
+    }
+}
+
+.row-flex {
+    display: flex;
+    flex-direction: row;
+
+    .col-fluid {
+        width: auto;
     }
 }
 

@@ -1,0 +1,17 @@
+
+DROP TABLE IF EXISTS alerts;
+
+CREATE TABLE alerts (
+       id INTEGER PRIMARY KEY AUTOINCREMENT,
+       timestamp INTEGER NOT NULL DEFAULT CURRENT_TIMESTAMP,
+       updated INTEGER NOT NULL DEFAULT CURRENT_TIMESTAMP,
+       expiry INTEGER NOT NULL DEFAULT CURRENT_TIMESTAMP,
+       type TEXT NOT NULL DEFAULT "Unknown",
+       severity INTEGER NOT NULL DEFAULT 0,
+       source INTEGER NOT NULL DEFAULT 0,
+
+       headline TEXT NULL,
+       subtitle TEXT NULL,
+       icon TEXT NULL,
+       nowrap BOOLEAN NULL
+);

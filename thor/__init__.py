@@ -1,42 +1,41 @@
-from datetime import datetime
-from io import BytesIO
-from os import environ
 import json
-import time
+from datetime import datetime
+import logging
+from os import environ
+from secrets import token_hex
 
 import werkzeug.exceptions
-from celery import Celery, Task
 from flask import Flask, render_template
 from flask_apscheduler import APScheduler
 from flask_assets import Environment, Bundle
 from flask_mqtt import Mqtt
 from flask_socketio import SocketIO
+from rich.logging import RichHandler
 
+from thor.alert import *
 from thor.constants import *
-from thor.providers import MetNoWeatherProvider
+from thor.providers import MetNoWeatherProvider, MetEireannWeatherWarningProvider, \
+    TESTINGMetEireannWeatherWarningProvider
+
+
+# Set up logging
+FORMAT = "%(message)s"
+logging.basicConfig(
+    level="NOTSET", format=FORMAT, datefmt="[%X]", handlers=[RichHandler()]
+)
+
+log = logging.getLogger("rich")
 
 assets = Environment()
 mqtt = Mqtt()
 scheduler = APScheduler()
 socketio = SocketIO()
-weather = MetNoWeatherProvider(environ.get('HOME_LAT', 0.0), environ.get('HOME_LONG', 0.0))
+inet_weather_providers = [MetNoWeatherProvider(environ.get('HOME_LAT', 0.0), environ.get('HOME_LONG', 0.0))]
+inet_warning_providers = [TESTINGMetEireannWeatherWarningProvider("IRELAND")]
 
 def get_time(strftime="%H:%M"):
     # Returns the current time as a string in the format "HH:MM"
     return datetime.now().strftime(strftime)
-
-def create_celery(app: Flask) -> Celery:
-    class FlaskTask(Task):
-        def __call__(self, *args, **kwargs) -> object:
-            with app.app_context():
-                return self.run(*args, **kwargs)
-
-    celery_app = Celery(app.name, task_cls=FlaskTask)
-    celery_app.config_from_object(app.config["CELERY"])
-    celery_app.set_default()
-    app.extensions["celery"] = celery_app
-    return celery_app
-
 
 def create_app():
     app = Flask(__name__,
@@ -46,17 +45,16 @@ def create_app():
     if environ.get('FLASK_ENV') == 'development':
         app.config['TEMPLATES_AUTO_RELOAD'] = True
 
-    app.config['SECRET_KEY'] = environ.get('SECRET_KEY', '') # TODO: make this random
+    app.config['SECRET_KEY'] = environ.get('SECRET_KEY', token_hex(32))
 
     # UDP node discovery port
     app.config['NODE_DISCOVERY_PORT'] = environ.get('NODE_DISCOVERY_PORT', 51366)
 
-    # Celery configuration
-    app.config['CELERY'] = dict(
-        broker_url = environ.get('CELERY_BROKER_URL', 'db+sqlite://'),
-        result_backend = environ.get('CELERY_BROKER_URL', 'db+sqlite://'),
-        task_ignore_result=True,
-    )
+    # Database URI
+    app.config["DATABASE"] = environ.get('DATABASE', ":memory:")
+
+    # Python RQ stuff
+    app.config['REDIS_URL'] = environ.get('REDIS_URL', 'redis://localhost')
 
     # MQTT configuration
     app.config['MQTT_BROKER_URL'] = environ.get('MQTT_BROKER', 'localhost')
@@ -75,13 +73,18 @@ def create_app():
     # SASS configuration
     app.config['SASS_LOAD_PATHS'] = ['vendor/']
 
+    from thor import db
+    db.init_app(app)
     assets.init_app(app)
     socketio.init_app(app)
     mqtt.init_app(app)
-    celery = create_celery(app)
 
     scss = Bundle('styles/style.scss', filters="scss", output="styles/style.css")
     assets.register('scss_all', scss)
+
+    @app.route('/')
+    def index():
+        return render_template('dashboard.html')
 
     @app.errorhandler(werkzeug.exceptions.NotFound)
     def not_found(error):
@@ -89,12 +92,29 @@ def create_app():
 
     @scheduler.task('cron', id='publish_weather', minute="*/10")
     def publish_weather(methods=3):
-        print('Serving weather')
-        weather_data = weather.fetch()
+        log.info('Serving weather')
+        weather_data = inet_weather_providers[0].fetch()
+
+        log.info(weather_data)
+
+        weather_data['alerts'] = db.get_active_alerts(app)
+        for provider in inet_warning_providers:
+            weather_data['alerts'].extend(provider.fetch().get('warnings', []))
+
         if methods & DATA_OUTPUT_MQTT:
             mqtt.publish('thor/weather', json.dumps(weather_data).encode('utf-8'))
         if methods & DATA_OUTPUT_SOCKETIO:
             socketio.emit('weather', weather_data)
+
+    def publish_alert(alert: Alert, methods=3):
+        topic = f'thor/alerts/{alert.alert_type}'
+        # Add the alert to the alerts database
+        db.add_new_alert(alert, app)
+        if methods & DATA_OUTPUT_MQTT:
+            mqtt.publish('thor/alerts', json.dumps(alert.__dict__).encode('utf-8')) # for nodes subscribed to all alerts
+            mqtt.publish(topic, json.dumps(alert.__dict__).encode('utf-8'))
+        if methods & DATA_OUTPUT_SOCKETIO:
+            socketio.emit(f'alerts#{alert.alert_type}', alert.__dict__)
 
     @mqtt.on_message()
     def handle_mqtt_message(client, userdata, message):
@@ -102,9 +122,16 @@ def create_app():
             topic=message.topic,
             payload=message.payload.decode()
         )
+        log.debug(data)
         if data['topic'] == 'thor/ask':
             # Send weather information over 'thor/weather'
             publish_weather(DATA_OUTPUT_MQTT)
+        if data['topic'].startswith('thor/update/lightning'):
+            # Send a lightning alert to every device
+            alert = LightningAlert()
+            log.debug("Alerting of lightning.")
+            alert.distance_km = 15
+            publish_alert(alert)
 
     @socketio.on('ask')
     def sio_ask(message):
@@ -115,14 +142,12 @@ def create_app():
     @mqtt.on_connect()
     def mqtt_on_connect(client, userdata, flags, rc):
         mqtt.publish('thor/status', f'{get_time()}: Hub online'.encode('utf-8'))
-        publish_weather()
-        mqtt.publish('thor/status', b'Hub online')
         publish_weather(DATA_OUTPUT_MQTT)
         mqtt.subscribe('thor/ask')
+        mqtt.subscribe('thor/update/lightning')
 
-    @app.route('/')
-    def index():
-        return render_template('dashboard.html')
+    import thor.testing_endpoints
+    app.register_blueprint(thor.testing_endpoints.bp)
 
     scheduler.start()
 
