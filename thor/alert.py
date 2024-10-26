@@ -27,6 +27,8 @@ class MetEireannWeatherWarning(Alert):
             regions = []
         self.cap_id = cap_id
         self.alert_type = alert_type.casefold()
+        if ";" in self.alert_type:
+            self.alert_type = headline.split(" ")[0].casefold()
         self.severity = (severity.casefold() == "moderate" and 1) or \
                         (severity.casefold() == "severe" and 2) or \
                         (severity.casefold() == "extreme" and 3) or 0

@@ -14,8 +14,7 @@ from rich.logging import RichHandler
 
 from thor.alert import *
 from thor.constants import *
-from thor.providers import MetNoWeatherProvider, MetEireannWeatherWarningProvider, \
-    TESTINGMetEireannWeatherWarningProvider
+from thor.providers import MetNoWeatherProvider, MetEireannWeatherWarningProvider
 
 
 # Set up logging
@@ -31,7 +30,7 @@ mqtt = Mqtt()
 scheduler = APScheduler()
 socketio = SocketIO()
 inet_weather_providers = [MetNoWeatherProvider(environ.get('HOME_LAT', 0.0), environ.get('HOME_LONG', 0.0))]
-inet_warning_providers = [TESTINGMetEireannWeatherWarningProvider("IRELAND")]
+inet_warning_providers = [MetEireannWeatherWarningProvider("EI11")]
 
 def get_time(strftime="%H:%M"):
     # Returns the current time as a string in the format "HH:MM"
