@@ -5,6 +5,8 @@ from os import environ
 from secrets import token_hex
 
 import werkzeug.exceptions
+from dotenv import load_dotenv
+load_dotenv()
 from flask import Flask, render_template
 from flask_apscheduler import APScheduler
 from flask_assets import Environment, Bundle
@@ -34,7 +36,7 @@ def get_time(strftime="%H:%M"):
     # Returns the current time as a string in the format "HH:MM"
     return datetime.now().strftime(strftime)
 
-def create_app():
+def create_app(use_mqtt=False):
     app = Flask(__name__,
                 static_url_path = '')
 
@@ -71,7 +73,7 @@ def create_app():
     db.init_app(app)
     assets.init_app(app)
     socketio.init_app(app)
-    mqtt.init_app(app)
+    if use_mqtt: mqtt.init_app(app)
 
     scss = Bundle('styles/style.scss', filters="scss", output="styles/style.css")
     assets.register('scss_all', scss)

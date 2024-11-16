@@ -5,6 +5,7 @@ Description=Auto-discovery service for THOR's hub
 User=thor
 Group=thor
 WorkingDirectory=/opt/thor
+EnvironmentFile=/etc/thor/.env
 ExecStart=/opt/thor/.venv/bin/python3 -m thor-autodiscovery
 
 [Install]

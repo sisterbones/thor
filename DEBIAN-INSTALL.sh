@@ -6,7 +6,6 @@ if [ "$EUID" -ne 0 ]
   exit
 fi
 
-MQTT_PASSWORD="$(head /dev/urandom | tr -dc A-Za-z0-9 | head -c 13 ; echo '')"
 DL_SERVER='http://192.168.1.1:3000'
 TMPDIR="/tmp/thor"
 INSTALLDIR="/opt/thor"
@@ -21,7 +20,12 @@ cd $TMPDIR
 
 # Install prerequisites (Python, Python VENV, git, an MQTT broker [Might wright my own; Using mosquitto for now] and everything needed to pull the project from github)
 apt-get update
-apt-get install python3 python3-venv python3-rich mosquitto mosquitto-clients redis-server git -y
+apt-get install python3 python3-venv python3-rich mosquitto mosquitto-clients git -y
+
+# Generate identifiers
+SECRET_KEY="$(head /dev/urandom | tr -dc A-Za-z0-9 | head -c 13 ; echo '')"
+MQTT_PASSWORD="$(head /dev/urandom | tr -dc A-Za-z0-9 | head -c 13 ; echo '')"
+MQTT_SERVICE_PASSWORD="$(head /dev/urandom | tr -dc A-Za-z0-9 | head -c 13 ; echo '')"
 
 echo '- Creating user '$SERVICE_USER' for thor'
 if id "$SERVICE_USER" >/dev/null 2>&1; then
@@ -38,10 +42,11 @@ chown mosquitto:mosquitto $CONFIGDIR/mosquitto_pwd
 
 # Download mosquitto configuration
 echo '  > Download mqtt configuration to /etc/mosquitto/conf.d/thor-mosquitto.conf'
-wget -O /etc/mosquitto/conf.d/thor-mosquitto.conf "$DL_SERVER/preconfigured/thor-mosquitto.conf"
+wget -O /etc/mosquitto/conf.d/thor-mosquitto.conf -nv "$DL_SERVER/preconfigured/thor-mosquitto.conf"
 
 echo '  > Set password for mosquitto'
 mosquitto_passwd -b /etc/thor/mosquitto_pwd thor "$MQTT_PASSWORD"
+mosquitto_passwd -b /etc/thor/mosquitto_pwd node "$MQTT_SERVICE_PASSWORD"
 
 echo '  > Restart mosquitto'
 systemctl restart mosquitto
@@ -49,12 +54,16 @@ systemctl restart mosquitto
 echo '  > Create .env'
 if [[ -f "$CONFIGDIR/.env" ]]; then
     # .env exists
-    printf '    ! .env already exists. copying to %s/.env.backup' "$CONFIGDIR"
+    printf '    ! .env already exists. copying to %s/.env.backup\n' "$CONFIGDIR"
     mv $CONFIGDIR/.env $CONFIGDIR/.env.backup
 fi
 
 touch $CONFIGDIR/.env
-{ printf "MQTT_BROKER=localhost\n"; printf "MQTT_USER=thor\n"; printf "MQTT_PASSWORD=%s\n" "$MQTT_PASSWORD"; } >> $CONFIGDIR/.env
+{ printf "MQTT_BROKER=localhost\n";
+  printf "MQTT_USER=thor\n";
+  printf "MQTT_PASSWORD=%s\n" "$MQTT_PASSWORD";
+  printf "MQTT_SERVICE_PASSWORD=%s" "$MQTT_SERVICE_PASSWORD";
+  printf "SECRET_KEY=%s\n" "$SECRET_KEY"; } >> $CONFIGDIR/.env
 
 echo '- Downloading thor...'
 if [[ ! -d "$INSTALLDIR" ]]; then
@@ -77,9 +86,9 @@ pip install -r $INSTALLDIR/requirements.txt
 
 echo '- Install systemd service'
 echo '  > Download thor hub service'
-wget -O /etc/systemd/system/thor.service $DL_SERVER/preconfigured/thor.service
+wget -O /etc/systemd/system/thor.service -nv $DL_SERVER/preconfigured/thor.service
 echo '  > Download thor auto-discovery service'
-wget -O /etc/systemd/system/thor-autodiscovery.service $DL_SERVER/preconfigured/thor-autodiscovery.service
+wget -O /etc/systemd/system/thor-autodiscovery.service -nv $DL_SERVER/preconfigured/thor-autodiscovery.service
 
 echo '  > Reload daemon and start service'
 systemctl daemon-reload

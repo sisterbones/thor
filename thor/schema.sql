@@ -17,6 +17,13 @@ CREATE TABLE alerts (
        nowrap BOOLEAN NULL
 );
 
+CREATE TABLE nodes (
+    id  TEXT PRIMARY KEY,
+    last_ip TEXT NOT NULL,
+    last_contact_time TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    type TEXT
+);
+
 CREATE TABLE config (
     id TEXT PRIMARY KEY,
     value TEXT NULL DEFAULT NULL,

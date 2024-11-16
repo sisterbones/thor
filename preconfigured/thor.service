@@ -5,7 +5,9 @@ Description=Thor lightning detection and alert system
 User=thor
 Group=thor
 WorkingDirectory=/opt/thor
-ExecStart=/opt/thor/.venv/bin/gunicorn "thor:create_app()" --bind=0.0.0.0:8000
+RuntimeDirectory=thor
+EnvironmentFile=/etc/thor/.env
+ExecStart=/opt/thor/.venv/bin/gunicorn "thor:create_app(use_mqtt=True)"
 
 [Install]
 WantedBy=multi-user.target

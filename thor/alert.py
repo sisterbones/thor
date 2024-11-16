@@ -45,7 +45,7 @@ class MetEireannWeatherWarning(Alert):
 
         # Build headline and description
         self.headline = f"{self.level.capitalize()} {self.alert_type.casefold()} {self.status.casefold()}"
-        self.subtitle = f"Onset: {datetime.fromisoformat(self.onset).strftime("%H:%M")}"
+        self.subtitle = f"Onset: {datetime.fromisoformat(self.onset).strftime('%H:%M')}"
         self.icon = (self.alert_type == "rain" and "cloud-rain") or \
                     (self.alert_type == "wind" and "wind") or \
                     (self.alert_type == "snow-ice" and "snowflake") or \
@@ -69,4 +69,4 @@ class LightningAlert(Alert):
         self.expiry = self.timestamp + (60 * 60 * 60)
         self.icon = "bolt"
         self.headline = "Lightning detected!"
-        self.subtitle = f"Last: {datetime.fromtimestamp(self.timestamp).strftime("%H:%M")} • Distance {self.distance_km}km"
+        self.subtitle = f"Last: {datetime.fromtimestamp(self.timestamp).strftime('%H:%M')} • Distance {self.distance_km}km"

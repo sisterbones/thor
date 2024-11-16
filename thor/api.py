@@ -23,6 +23,11 @@ def health():
     })
 
 
+@bp.route('/node/register/<node_id>', methods=['POST'])
+def register_node(node_id):
+    # Saves the node id into the database
+    pass
+
 @bp.route('/config/<config_id>', methods=['GET', 'POST', 'PATCH'])
 def config(config_id):
     db = get_db()
