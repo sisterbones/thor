@@ -1,5 +1,6 @@
 
 DROP TABLE IF EXISTS alerts;
+DROP TABLE IF EXISTS config;
 
 CREATE TABLE alerts (
        id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -14,4 +15,10 @@ CREATE TABLE alerts (
        subtitle TEXT NULL,
        icon TEXT NULL,
        nowrap BOOLEAN NULL
+);
+
+CREATE TABLE config (
+    id TEXT PRIMARY KEY,
+    value TEXT NULL DEFAULT NULL,
+    updated TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );

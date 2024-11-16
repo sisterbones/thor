@@ -20,7 +20,7 @@ from thor.providers import MetNoWeatherProvider, MetEireannWeatherWarningProvide
 # Set up logging
 FORMAT = "%(message)s"
 logging.basicConfig(
-    level="NOTSET", format=FORMAT, datefmt="[%X]", handlers=[RichHandler()]
+    level="INFO", format=FORMAT, datefmt="[%X]", handlers=[RichHandler()]
 )
 
 log = logging.getLogger("rich")
@@ -29,8 +29,6 @@ assets = Environment()
 mqtt = Mqtt()
 scheduler = APScheduler()
 socketio = SocketIO()
-inet_weather_providers = [MetNoWeatherProvider(environ.get('HOME_LAT', 0.0), environ.get('HOME_LONG', 0.0))]
-inet_warning_providers = [MetEireannWeatherWarningProvider("EI11")]
 
 def get_time(strftime="%H:%M"):
     # Returns the current time as a string in the format "HH:MM"
@@ -46,14 +44,11 @@ def create_app():
 
     app.config['SECRET_KEY'] = environ.get('SECRET_KEY', token_hex(32))
 
-    # UDP node discovery port
-    app.config['NODE_DISCOVERY_PORT'] = environ.get('NODE_DISCOVERY_PORT', 51366)
-
     # Database URI
     app.config["DATABASE"] = environ.get('DATABASE', ":memory:")
 
     # Python RQ stuff
-    app.config['REDIS_URL'] = environ.get('REDIS_URL', 'redis://localhost')
+    # app.config['REDIS_URL'] = environ.get('REDIS_URL', 'redis://localhost')
 
     # MQTT configuration
     app.config['MQTT_BROKER_URL'] = environ.get('MQTT_BROKER', 'localhost')
@@ -87,23 +82,16 @@ def create_app():
 
     @app.errorhandler(werkzeug.exceptions.NotFound)
     def not_found(error):
-        return render_template('not-found.html')
+        return render_template('not-found.html'), 404
 
     @scheduler.task('cron', id='publish_weather', minute="*/10")
     def publish_weather(methods=3):
         log.info('Serving weather')
-        weather_data = inet_weather_providers[0].fetch()
-
-        log.info(weather_data)
-
-        weather_data['alerts'] = db.get_active_alerts(app)
-        for provider in inet_warning_providers:
-            weather_data['alerts'].extend(provider.fetch().get('warnings', []))
 
         if methods & DATA_OUTPUT_MQTT:
-            mqtt.publish('thor/weather', json.dumps(weather_data).encode('utf-8'))
+            mqtt.publish('thor/weather', json.dumps({}).encode('utf-8'))
         if methods & DATA_OUTPUT_SOCKETIO:
-            socketio.emit('weather', weather_data)
+            socketio.emit('weather', {})
 
     def publish_alert(alert: Alert, methods=3):
         topic = f'thor/alerts/{alert.alert_type}'
@@ -143,10 +131,14 @@ def create_app():
         mqtt.publish('thor/status', f'{get_time()}: Hub online'.encode('utf-8'))
         publish_weather(DATA_OUTPUT_MQTT)
         mqtt.subscribe('thor/ask')
-        mqtt.subscribe('thor/update/lightning')
+        mqtt.subscribe('thor/status/#')
+        mqtt.subscribe('thor/update/#')
 
     import thor.testing_endpoints
     app.register_blueprint(thor.testing_endpoints.bp)
+
+    import thor.api
+    app.register_blueprint(thor.api.bp)
 
     scheduler.start()
 

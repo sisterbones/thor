@@ -1,0 +1,11 @@
+[Unit]
+Description=Auto-discovery service for THOR's hub
+
+[Service]
+User=thor
+Group=thor
+WorkingDirectory=/opt/thor
+ExecStart=/opt/thor/.venv/bin/python3 -m thor-autodiscovery
+
+[Install]
+WantedBy=multi-user.target

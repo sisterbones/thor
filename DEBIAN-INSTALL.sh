@@ -7,7 +7,7 @@ if [ "$EUID" -ne 0 ]
 fi
 
 MQTT_PASSWORD="$(head /dev/urandom | tr -dc A-Za-z0-9 | head -c 13 ; echo '')"
-DL_SERVER='http://192.168.1.1:8000'
+DL_SERVER='http://192.168.1.1:3000'
 TMPDIR="/tmp/thor"
 INSTALLDIR="/opt/thor"
 CONFIGDIR="/etc/thor"
@@ -21,7 +21,7 @@ cd $TMPDIR
 
 # Install prerequisites (Python, Python VENV, git, an MQTT broker [Might wright my own; Using mosquitto for now] and everything needed to pull the project from github)
 apt-get update
-apt-get install python3 python3-venv mosquitto mosquitto-clients git -y
+apt-get install python3 python3-venv python3-rich mosquitto mosquitto-clients redis-server git -y
 
 echo '- Creating user '$SERVICE_USER' for thor'
 if id "$SERVICE_USER" >/dev/null 2>&1; then
@@ -76,9 +76,12 @@ echo '  > Download dependencies'
 pip install -r $INSTALLDIR/requirements.txt
 
 echo '- Install systemd service'
-echo '  > Download service'
+echo '  > Download thor hub service'
 wget -O /etc/systemd/system/thor.service $DL_SERVER/preconfigured/thor.service
+echo '  > Download thor auto-discovery service'
+wget -O /etc/systemd/system/thor-autodiscovery.service $DL_SERVER/preconfigured/thor-autodiscovery.service
 
 echo '  > Reload daemon and start service'
 systemctl daemon-reload
-systemctl start thor.service
+systemctl enable thor.service --now
+systemctl enable thor-autodiscovery.service --now
