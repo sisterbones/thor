@@ -76,7 +76,6 @@ def met_no_symbol_to_font_awesome(icon):
         "sleetandthunder": ("cloud-bolt", "Sleet and thunder"),
 
         "lightrain": ("cloud-rain", "Light rain"),
-
     }
 
     print(icon)

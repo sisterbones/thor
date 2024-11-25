@@ -90,10 +90,12 @@ def create_app(use_mqtt=False):
     def publish_weather(methods=3):
         log.info('Serving weather')
 
+        weather = MetNoWeatherProvider(lat=app.config.get('HOME_LAT', 0), long=app.config.get('HOME_LONG', 0)).fetch()
+
         if methods & DATA_OUTPUT_MQTT:
-            mqtt.publish('thor/weather', json.dumps({}).encode('utf-8'))
+            mqtt.publish('thor/weather', json.dumps(weather).encode('utf-8'))
         if methods & DATA_OUTPUT_SOCKETIO:
-            socketio.emit('weather', {})
+            socketio.emit('weather', weather)
 
     def publish_alert(alert: Alert, methods=3):
         topic = f'thor/alerts/{alert.alert_type}'
@@ -136,8 +138,8 @@ def create_app(use_mqtt=False):
         mqtt.subscribe('thor/status/#')
         mqtt.subscribe('thor/update/#')
 
-    import thor.testing_endpoints
-    app.register_blueprint(thor.testing_endpoints.bp)
+    # import thor.testing_endpoints
+    # app.register_blueprint(thor.testing_endpoints.bp)
 
     import thor.api
     app.register_blueprint(thor.api.bp)

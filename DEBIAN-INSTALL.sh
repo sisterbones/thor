@@ -20,7 +20,7 @@ cd $TMPDIR
 
 # Install prerequisites (Python, Python VENV, git, an MQTT broker [Might wright my own; Using mosquitto for now] and everything needed to pull the project from github)
 apt-get update
-apt-get install python3 python3-venv python3-rich mosquitto mosquitto-clients git -y
+apt-get install python3 python3-venv python3-rich mosquitto mosquitto-clients ruby-sass git -y
 
 # Generate identifiers
 SECRET_KEY="$(head /dev/urandom | tr -dc A-Za-z0-9 | head -c 13 ; echo '')"
@@ -89,6 +89,9 @@ echo '  > Download thor hub service'
 wget -O /etc/systemd/system/thor.service -nv $DL_SERVER/preconfigured/thor.service
 echo '  > Download thor auto-discovery service'
 wget -O /etc/systemd/system/thor-autodiscovery.service -nv $DL_SERVER/preconfigured/thor-autodiscovery.service
+
+chown $SERVICE_USER:$SERVICE_USER -R /etc/thor
+chown $SERVICE_USER:$SERVICE_USER -R /opt/thor
 
 echo '  > Reload daemon and start service'
 systemctl daemon-reload
