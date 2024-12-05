@@ -46,7 +46,7 @@ wget -O /etc/mosquitto/conf.d/thor-mosquitto.conf -nv "$DL_SERVER/preconfigured/
 
 echo '  > Set password for mosquitto'
 mosquitto_passwd -b /etc/thor/mosquitto_pwd thor "$MQTT_PASSWORD"
-mosquitto_passwd -b /etc/thor/mosquitto_pwd node "$MQTT_SERVICE_PASSWORD"
+mosquitto_passwd -b /etc/thor/mosquitto_pwd service "$MQTT_SERVICE_PASSWORD"
 
 echo '  > Restart mosquitto'
 systemctl restart mosquitto
@@ -62,7 +62,7 @@ touch $CONFIGDIR/.env
 { printf "MQTT_BROKER=localhost\n";
   printf "MQTT_USER=thor\n";
   printf "MQTT_PASSWORD=%s\n" "$MQTT_PASSWORD";
-  printf "MQTT_SERVICE_PASSWORD=%s" "$MQTT_SERVICE_PASSWORD";
+  printf "MQTT_SERVICE_PASSWORD=%s\n" "$MQTT_SERVICE_PASSWORD";
   printf "SECRET_KEY=%s\n" "$SECRET_KEY"; } >> $CONFIGDIR/.env
 
 echo '- Downloading thor...'

@@ -1,3 +1,4 @@
+from os import environ
 from time import time
 
 from flask import Blueprint, current_app, jsonify, request
@@ -23,10 +24,22 @@ def health():
     })
 
 
-@bp.route('/node/register/<node_id>', methods=['POST'])
+@bp.route('/node/register/<node_id>')
 def register_node(node_id):
-    # Saves the node id into the database
-    pass
+    # Saves the node id into the database and returns the MQTT key and backup Wi-Fi credentials
+
+    # TODO: Save the node id
+
+    return jsonify({
+        'timestamp': time(),
+        'mqtt': {
+            'username': 'service',
+            'password': environ.get('MQTT_SERVICE_PASSWORD'),
+            'port': environ.get('MQTT_PORT', 1883)
+        },
+        'wifi': None
+    })
+
 
 @bp.route('/config/<config_id>', methods=['GET', 'POST', 'PATCH'])
 def config(config_id):

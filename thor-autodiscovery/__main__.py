@@ -20,7 +20,6 @@ log = logging.getLogger("rich")
 def discovery_loop():
     log.info('Starting auto-discovery server.')
     log.info(f'Binding to port {environ.get("NODE_DISCOVERY_PORT", 51366)}.')
-    response = 'thor_server_response'
 
     sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
     server_address = ('', environ.get('NODE_DISCOVERY_PORT', 51366))
@@ -34,6 +33,7 @@ def discovery_loop():
 
         if data.startswith('thor_node_broadcast'):
             log.info(f'Sending reply to {address[0]}')
+            response = f'thor_server_response;your_ip:{address[0]};port:{environ.get("PORT", "8467")}'
             sent = sock.sendto(response.encode(), address)
 
 if __name__ == '__main__':

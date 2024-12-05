@@ -8,9 +8,8 @@ import werkzeug.exceptions
 from dotenv import load_dotenv
 load_dotenv()
 from flask import Flask, render_template
-from flask_apscheduler import APScheduler
+# from flask_apscheduler import APScheduler
 from flask_assets import Environment, Bundle
-from flask_mqtt import Mqtt
 from flask_socketio import SocketIO
 from rich.logging import RichHandler
 
@@ -28,8 +27,8 @@ logging.basicConfig(
 log = logging.getLogger("rich")
 
 assets = Environment()
-mqtt = Mqtt()
-scheduler = APScheduler()
+# mqtt = Mqtt()
+# scheduler = APScheduler()
 socketio = SocketIO()
 
 def get_time(strftime="%H:%M"):
@@ -73,7 +72,7 @@ def create_app(use_mqtt=False):
     db.init_app(app)
     assets.init_app(app)
     socketio.init_app(app)
-    if use_mqtt: mqtt.init_app(app)
+    # if use_mqtt: mqtt.init_app(app)
 
     scss = Bundle('styles/style.scss', filters="scss", output="styles/style.css")
     assets.register('scss_all', scss)
@@ -86,7 +85,7 @@ def create_app(use_mqtt=False):
     def not_found(error):
         return render_template('not-found.html'), 404
 
-    @scheduler.task('cron', id='publish_weather', minute="*/10")
+    # @scheduler.task('cron', id='publish_weather', minute="*/10")
     def publish_weather(methods=3):
         log.info('Serving weather')
 
@@ -101,28 +100,28 @@ def create_app(use_mqtt=False):
         topic = f'thor/alerts/{alert.alert_type}'
         # Add the alert to the alerts database
         db.add_new_alert(alert, app)
-        if methods & DATA_OUTPUT_MQTT:
-            mqtt.publish('thor/alerts', json.dumps(alert.__dict__).encode('utf-8')) # for nodes subscribed to all alerts
-            mqtt.publish(topic, json.dumps(alert.__dict__).encode('utf-8'))
+        # if methods & DATA_OUTPUT_MQTT:
+        #     mqtt.publish('thor/alerts', json.dumps(alert.__dict__).encode('utf-8')) # for nodes subscribed to all alerts
+        #     mqtt.publish(topic, json.dumps(alert.__dict__).encode('utf-8'))
         if methods & DATA_OUTPUT_SOCKETIO:
             socketio.emit(f'alerts#{alert.alert_type}', alert.__dict__)
 
-    @mqtt.on_message()
-    def handle_mqtt_message(client, userdata, message):
-        data = dict(
-            topic=message.topic,
-            payload=message.payload.decode()
-        )
-        log.debug(data)
-        if data['topic'] == 'thor/ask':
-            # Send weather information over 'thor/weather'
-            publish_weather(DATA_OUTPUT_MQTT)
-        if data['topic'].startswith('thor/update/lightning'):
-            # Send a lightning alert to every device
-            alert = LightningAlert()
-            log.debug("Alerting of lightning.")
-            alert.distance_km = 15
-            publish_alert(alert)
+    # @mqtt.on_message()
+    # def handle_mqtt_message(client, userdata, message):
+    #     data = dict(
+    #         topic=message.topic,
+    #         payload=message.payload.decode()
+    #     )
+    #     log.debug(data)
+    #     if data['topic'] == 'thor/ask':
+    #         # Send weather information over 'thor/weather'
+    #         publish_weather(DATA_OUTPUT_MQTT)
+    #     if data['topic'].startswith('thor/update/lightning'):
+    #         # Send a lightning alert to every device
+    #         alert = LightningAlert()
+    #         log.debug("Alerting of lightning.")
+    #         alert.distance_km = 15
+    #         publish_alert(alert)
 
     @socketio.on('ask')
     def sio_ask(message):
@@ -130,13 +129,13 @@ def create_app(use_mqtt=False):
             # Calls publish_weather
             publish_weather(DATA_OUTPUT_SOCKETIO)
 
-    @mqtt.on_connect()
-    def mqtt_on_connect(client, userdata, flags, rc):
-        mqtt.publish('thor/status', f'{get_time()}: Hub online'.encode('utf-8'))
-        publish_weather(DATA_OUTPUT_MQTT)
-        mqtt.subscribe('thor/ask')
-        mqtt.subscribe('thor/status/#')
-        mqtt.subscribe('thor/update/#')
+    # @mqtt.on_connect()
+    # def mqtt_on_connect(client, userdata, flags, rc):
+    #     mqtt.publish('thor/status', f'{get_time()}: Hub online'.encode('utf-8'))
+    #     publish_weather(DATA_OUTPUT_MQTT)
+    #     mqtt.subscribe('thor/ask')
+    #     mqtt.subscribe('thor/status/#')
+    #     mqtt.subscribe('thor/update/#')
 
     # import thor.testing_endpoints
     # app.register_blueprint(thor.testing_endpoints.bp)
@@ -144,7 +143,7 @@ def create_app(use_mqtt=False):
     import thor.api
     app.register_blueprint(thor.api.bp)
 
-    scheduler.start()
+    # scheduler.start()
 
     return app
 
