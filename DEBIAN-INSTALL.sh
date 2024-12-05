@@ -6,7 +6,7 @@ if [ "$EUID" -ne 0 ]
   exit
 fi
 
-DL_SERVER='http://192.168.1.1:3000'
+DL_SERVER='http://192.168.1.1:8000'
 TMPDIR="/tmp/thor"
 INSTALLDIR="/opt/thor"
 CONFIGDIR="/etc/thor"
@@ -72,9 +72,17 @@ if [[ ! -d "$INSTALLDIR" ]]; then
     git submodule update --init --recursive
   else
     echo '  ! Git repo for thor already found. Updating repo...'
-    cd $INSTALLDIR
-    git pull --recurse-submodules
-    cd ..
+    {
+      cd $INSTALLDIR
+      git pull --recurse-submodules
+      cd ..
+    } || {
+      echo '  ! Git failed that :(. Downloading it again...'
+      rm -rf $INSTALLDIR
+      git clone git@github.com:sisterbones/thor.git $INSTALLDIR
+      cd $INSTALLDIR
+      git submodule update --init --recursive
+    }
 fi
 
 echo '  > Create a virtual environment'
