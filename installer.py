@@ -8,7 +8,7 @@ import platform
 import sys
 
 # Detect Python version and don't allow anything older than Python 3.10.
-if int(sys.version.split('.')[1]) <= 9:
+if int(sys.version.split('.')[1]) <= 10:
     raise Exception('Python version {0} is not supported. Please update to Python 3.10 or newer.'.format(sys.version))
 
 try:

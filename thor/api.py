@@ -27,15 +27,25 @@ def health():
 @bp.route('/node/register/<node_id>')
 def register_node(node_id):
     # Saves the node id into the database and returns the MQTT key and backup Wi-Fi credentials
+    # print(type(node_id))
 
-    # TODO: Save the node id
+    db = get_db()
+    existing = db.execute('SELECT * FROM nodes WHERE id = ?', [node_id]).fetchone()
+    if existing:
+        # Update its values
+        db.execute('UPDATE nodes SET last_ip = ?, last_contact_time = CURRENT_TIMESTAMP WHERE id = ?', [request.remote_addr, node_id])
+    else:
+        # Otherwise just make a new one
+        db.execute('INSERT INTO nodes (id, last_ip) VALUES (?, ?)', [node_id, request.remote_addr])
+    db.commit()
 
     return jsonify({
         'timestamp': time(),
         'mqtt': {
             'username': 'service',
             'password': environ.get('MQTT_SERVICE_PASSWORD'),
-            'port': environ.get('MQTT_PORT', 1883)
+            'port': environ.get('MQTT_PORT', 1883),
+            'host': environ.get('MQTT_BROKER', 'localhost')
         },
         'wifi': None
     })

@@ -91,10 +91,9 @@ def create_app(use_mqtt=False):
 
         weather = MetNoWeatherProvider(lat=app.config.get('HOME_LAT', 0), long=app.config.get('HOME_LONG', 0)).fetch()
 
-        if methods & DATA_OUTPUT_MQTT:
-            mqtt.publish('thor/weather', json.dumps(weather).encode('utf-8'))
-        if methods & DATA_OUTPUT_SOCKETIO:
-            socketio.emit('weather', weather)
+        weather['topic'] = 'weather'
+
+        socketio.emit('weather', weather)
 
     def publish_alert(alert: Alert, methods=3):
         topic = f'thor/alerts/{alert.alert_type}'
@@ -103,15 +102,12 @@ def create_app(use_mqtt=False):
         # if methods & DATA_OUTPUT_MQTT:
         #     mqtt.publish('thor/alerts', json.dumps(alert.__dict__).encode('utf-8')) # for nodes subscribed to all alerts
         #     mqtt.publish(topic, json.dumps(alert.__dict__).encode('utf-8'))
-        if methods & DATA_OUTPUT_SOCKETIO:
-            socketio.emit(f'alerts#{alert.alert_type}', alert.__dict__)
+        socketio.emit(f'alerts', alert.__dict__) # For nodes looking for all alerts
+        socketio.emit(f'alerts/{alert.alert_type}', alert.__dict__) # For nodes only looking at specific alerts
 
     # @mqtt.on_message()
-    # def handle_mqtt_message(client, userdata, message):
-    #     data = dict(
-    #         topic=message.topic,
-    #         payload=message.payload.decode()
-    #     )
+    # @socketio.on('mqtt')
+    # def handle_mqtt_message(data):
     #     log.debug(data)
     #     if data['topic'] == 'thor/ask':
     #         # Send weather information over 'thor/weather'
@@ -123,13 +119,39 @@ def create_app(use_mqtt=False):
     #         alert.distance_km = 15
     #         publish_alert(alert)
 
+    # @socketio.on('ask', namespace="/mqtt")
     @socketio.on('ask')
     def sio_ask(message):
         if 'weather' in message:
             # Calls publish_weather
             publish_weather(DATA_OUTPUT_SOCKETIO)
 
-    # @mqtt.on_connect()
+    @socketio.on('update/lighting')
+    def sio_update(message):
+        try:
+            message = json.loads(message)
+        except:
+            pass
+
+        alert = LightningAlert()
+        alert.distance_km = message.get("distance")
+
+        # If there was lighting detected in the last ten minutes, bundle it in with that alert.
+        alerts = db.get_active_alerts(app, "lightning")
+        if not alerts:
+            publish_alert(alert)
+
+        print(alerts)
+
+        # Check if there's any lighting strikes that are closer
+        # closer_strikes = Object.keys()
+        # if not closer_strikes:
+        #     publish_alert(alert)
+
+        # Otherwise do nothing to avoid sending too many alerts.
+
+
+        # @mqtt.on_connect()
     # def mqtt_on_connect(client, userdata, flags, rc):
     #     mqtt.publish('thor/status', f'{get_time()}: Hub online'.encode('utf-8'))
     #     publish_weather(DATA_OUTPUT_MQTT)
@@ -150,4 +172,4 @@ def create_app(use_mqtt=False):
 
 if __name__ == '__main__':
     debug_app = create_app()
-    debug_app.run(use_reloader=False, debug=True)
+    debug_app.run(use_reloader=False, debug=True, host=environ.get("HOST", "0.0.0.0"), port=environ.get("PORT", 5000))

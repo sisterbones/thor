@@ -59,11 +59,14 @@ def add_new_alert(alert: Alert, app):
 
         return False
 
-def get_active_alerts(app):
+def get_active_alerts(app, type:str=None):
     log.debug("Getting active alerts..")
     with app.app_context():
         db = get_db()
-        alerts = db.execute("SELECT * FROM alerts WHERE expiry >= unixepoch() ORDER BY timestamp",).fetchall()
+        if type is not None:
+            alerts = db.execute("SELECT * FROM alerts WHERE expiry >= unixepoch() ORDER BY timestamp",).fetchall()
+        else:
+            alerts = db.execute("SELECT * FROM alerts WHERE expiry >= unixepoch() AND type = ? ORDER BY timestamp", type).fetchall()
         to_return = []
         for alert in alerts:
             alert_obj = Alert()

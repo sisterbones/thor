@@ -66,7 +66,7 @@ class LightningAlert(Alert):
         self.alert_type = "lightning"
         self.distance_km = 0
         self.source = DATA_SOURCE_MQTT
-        self.expiry = self.timestamp + (60 * 60 * 60)
+        self.expiry = self.timestamp + (60 * 60 * 10)
         self.icon = "bolt"
         self.headline = "Lightning detected!"
-        self.subtitle = f"Last: {datetime.fromtimestamp(self.timestamp).strftime('%H:%M')} • Distance {self.distance_km}km"
+        self.subtitle = f"Distance {self.distance_km}km"

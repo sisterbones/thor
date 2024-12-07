@@ -10,6 +10,9 @@ from os import environ
 import requests
 from rich.logging import RichHandler
 
+from dotenv import load_dotenv
+load_dotenv()
+
 # Set up logging
 FORMAT = "%(message)s"
 logging.basicConfig(
