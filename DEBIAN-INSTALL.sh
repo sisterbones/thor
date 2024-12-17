@@ -63,7 +63,8 @@ touch $CONFIGDIR/.env
   printf "MQTT_USER=thor\n";
   printf "MQTT_PASSWORD=%s\n" "$MQTT_PASSWORD";
   printf "MQTT_SERVICE_PASSWORD=%s\n" "$MQTT_SERVICE_PASSWORD";
-  printf "SECRET_KEY=%s\n" "$SECRET_KEY"; } >> $CONFIGDIR/.env
+  printf "SECRET_KEY=%s\n" "$SECRET_KEY\n";
+  printf "DATABASE=%s/thor.sqlite\n" "$CONFIGDIR"; } >> $CONFIGDIR/.env
 
 echo '- Downloading thor...'
 if [[ ! -d "$INSTALLDIR" ]]; then
@@ -97,11 +98,17 @@ echo '  > Download thor hub service'
 wget -O /etc/systemd/system/thor.service -nv $DL_SERVER/preconfigured/thor.service
 echo '  > Download thor auto-discovery service'
 wget -O /etc/systemd/system/thor-autodiscovery.service -nv $DL_SERVER/preconfigured/thor-autodiscovery.service
+echo '  > Download thor MQTT service'
+wget -O /etc/systemd/system/thor-mqtt.service -nv $DL_SERVER/preconfigured/thor-mqtt.service
 
 chown $SERVICE_USER:$SERVICE_USER -R /etc/thor
 chown $SERVICE_USER:$SERVICE_USER -R /opt/thor
 
+echo 'Initialise database'
+cd $INSTALLDIR
+$INSTALLDIR/.venv/bin/flask --app thor reset-db
+
 echo '  > Reload daemon and start service'
 systemctl daemon-reload
 systemctl enable thor.service --now
-systemctl enable thor-autodiscovery.service --now
+systemctl restart thor.service

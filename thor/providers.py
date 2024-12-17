@@ -1,15 +1,20 @@
 import datetime
 import time
+
 import requests
+from flask import current_app
+
 from thor.constants import *
 from thor.alert import MetEireannWeatherWarning
+from thor.db import add_new_alert
+
 
 class WeatherProvider:
     def fetch(self) -> dict:
         """Fetches the latest data from the weather provider"""
         return {
             "timestamp": time.time(),
-            "icon": 'circle-question', # Font Awesome icon
+            "icon": 'circle-question',  # Font Awesome icon
             "source": {"label": None, "href": None},
             "weather": {
                 "temperature": 0.0,
@@ -17,6 +22,7 @@ class WeatherProvider:
                 "headline": "Unknown"
             }
         }
+
 
 def met_no_symbol_to_font_awesome(icon):
     """Converts a MET Norway symbol name to a similar Font Awesome icon and summary of icon."""
@@ -86,15 +92,17 @@ def met_no_symbol_to_font_awesome(icon):
 
     return "circle-question", "Unknown"
 
+
 class CachingWeatherProvider(WeatherProvider):
     def __init__(self):
         self.last_fetched_time = 0
-        self.seconds_to_live = 6000 # 10 minutes
+        self.seconds_to_live = 6000  # 10 minutes
         self.cached_response = {}
 
     def fetch(self) -> dict:
         if time.time() <= self.last_fetched_time + self.seconds_to_live:
             return self.cached_response
+
 
 class MetNoWeatherProvider(CachingWeatherProvider):
     """Weather provider using the MET Norway's Location Forcast API. (Requires an internet connection)"""
@@ -128,7 +136,8 @@ class MetNoWeatherProvider(CachingWeatherProvider):
         else:
             return cache
 
-        icon = met_no_symbol_to_font_awesome(data['properties']['timeseries'][0]['data']['next_12_hours']['summary']['symbol_code'])
+        icon = met_no_symbol_to_font_awesome(
+            data['properties']['timeseries'][0]['data']['next_12_hours']['summary']['symbol_code'])
 
         response = {
             "timestamp": time.time(),
@@ -136,7 +145,7 @@ class MetNoWeatherProvider(CachingWeatherProvider):
                 "lat": self.lat,
                 "long": self.long
             },
-            "icon": icon[0], # Font Awesome icon
+            "icon": icon[0],  # Font Awesome icon
             "source": {"label": "Norwegian Meteorological Institute", "href": "https://met.no"},
             "weather": {
                 "temperature": data['properties']['timeseries'][0]['data']['instant']['details']['air_temperature'],
@@ -147,6 +156,7 @@ class MetNoWeatherProvider(CachingWeatherProvider):
 
         self.cached_response = response
         return response
+
 
 class MetEireannWeatherWarningProvider(CachingWeatherProvider):
     def __init__(self, region="IRELAND"):
@@ -170,12 +180,18 @@ class MetEireannWeatherWarningProvider(CachingWeatherProvider):
         # Process warnings
         for warning in data:
             alert = MetEireannWeatherWarning(
-                cap_id=warning.get("capId", ""), alert_type=warning.get("type", "Unknown"), severity=warning.get("severity", "Unknown"),
-                certainty=warning.get("certainty"), level=warning.get("level", "Unknown"), issued=warning.get("issued", PLACEHOLDER_EPOCH_ISO),
-                updated=warning.get("updated", PLACEHOLDER_EPOCH_ISO), onset=warning.get("onset", PLACEHOLDER_EPOCH_ISO),
-                expiry=warning.get("expiry", PLACEHOLDER_EPOCH_ISO), headline=warning.get("headline", ""), description=warning.get("description", ""),
+                cap_id=warning.get("capId", ""), alert_type=warning.get("type", "Unknown"),
+                severity=warning.get("severity", "Unknown"),
+                certainty=warning.get("certainty"), level=warning.get("level", "Unknown"),
+                issued=warning.get("issued", PLACEHOLDER_EPOCH_ISO),
+                updated=warning.get("updated", PLACEHOLDER_EPOCH_ISO),
+                onset=warning.get("onset", PLACEHOLDER_EPOCH_ISO),
+                expiry=warning.get("expiry", PLACEHOLDER_EPOCH_ISO), source_headline=warning.get("headline", ""),
+                source_description=warning.get("description", ""),
                 regions=warning.get("regions", [self.region]), status=warning.get("status", "warning")
             )
+            add_new_alert(alert)
+
             warnings.append(alert.__dict__)
 
         response = {

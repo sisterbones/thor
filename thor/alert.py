@@ -1,10 +1,13 @@
-
-import time
-from thor.constants import *
 from datetime import datetime
+import time
+from uuid import uuid4
+
+from thor.constants import *
+
 
 class Alert:
-    def __init__(self):
+    def __init__(self, *initial_data, **kwargs):
+        self.publisher_id = str(uuid4())
         self.nowrap = False
         self.icon = None
         self.subtitle = None
@@ -12,40 +15,39 @@ class Alert:
         self.timestamp = time.time()
         self.alert_type = None
         self.severity = 0
-        self.source = None
+        self.source = DATA_SOURCE_UNKNOWN
         self.updated = self.timestamp
         self.expiry = self.timestamp + (60 * 60 * 60)
         self.status = "Warning"
 
+        for dictionary in initial_data:
+            for key in dictionary:
+                setattr(self, key, dictionary[key])
+        for key in kwargs:
+            setattr(self, key, kwargs[key])
+
+
 class MetEireannWeatherWarning(Alert):
-    def __init__(self, cap_id: str = "", alert_type: str = "Unknown", severity: str = "Unknown", certainty: str = "Likely",
-                 level: str = "Unknown", issued: str = datetime.now().isoformat(), updated: str = datetime.now().isoformat(),
-                 onset: str = datetime.now().isoformat(), expiry: str = datetime.now().isoformat(), headline: str = "",
-                 description: str = "", regions=None, status: str = "Warning"):
-        super().__init__()
+    def __init__(self, *initial_data, cap_id: str = "", alert_type: str = "Unknown",
+                 regions=None, **kwargs):
+
+        super().__init__(*initial_data, **kwargs)
+        # print(self.__dict__)
+
         if regions is None:
             regions = []
-        self.cap_id = cap_id
-        self.alert_type = alert_type.casefold()
-        if ";" in self.alert_type:
-            self.alert_type = headline.split(" ")[0].casefold()
-        self.severity = (severity.casefold() == "moderate" and 1) or \
-                        (severity.casefold() == "severe" and 2) or \
-                        (severity.casefold() == "extreme" and 3) or 0
-        self.certainty = certainty
-        self.level = level
-        self.issued = issued
-        self.updated = updated
-        self.onset = onset
-        self.expiry = expiry
-        self.source_headline = headline
-        self.source_description = description
-        self.regions = regions
-        self.status = status
+        self.publisher_id = cap_id
+        if self.alert_type is None:
+            self.alert_type = "Unknown"
+        self.alert_type = alert_type.split(" ")[0].casefold()
+        if type(self.severity) != int: self.severity = (self.severity.casefold() == "moderate" and 1) or \
+                        (self.severity.casefold() == "severe" and 2) or \
+                        (self.severity.casefold() == "extreme" and 3) or 0
 
         # Build headline and description
         self.headline = f"{self.level.capitalize()} {self.alert_type.casefold()} {self.status.casefold()}"
-        self.subtitle = f"Onset: {datetime.fromisoformat(self.onset).strftime('%H:%M')}"
+        if type(self.onset) == str: self.subtitle = f"Onset: {datetime.fromisoformat(self.onset).strftime('%H:%M')}"
+        else: self.subtitle = f"Onset: {datetime.fromtimestamp(self.onset).strftime('%H:%M')}"
         self.icon = (self.alert_type == "rain" and "cloud-rain") or \
                     (self.alert_type == "wind" and "wind") or \
                     (self.alert_type == "snow-ice" and "snowflake") or \
@@ -57,16 +59,20 @@ class MetEireannWeatherWarning(Alert):
                     GENERIC_WARNING_ICON
         self.nowrap = True
 
+        if type(self.issued) == str: self.issued = datetime.fromisoformat(self.issued).timestamp()
+        if type(self.updated) == str: self.updated = datetime.fromisoformat(self.updated).timestamp()
+        if type(self.onset) == str: self.onset = datetime.fromisoformat(self.onset).timestamp()
+        if type(self.expiry) == str: self.expiry = datetime.fromisoformat(self.expiry).timestamp()
+
         self.source = DATA_SOURCE_METEIREANN | DATA_SOURCE_INET
 
 
 class LightningAlert(Alert):
-    def __init__(self):
-        super().__init__()
+    def __init__(self, *initial_data, **kwargs):
+        super().__init__(*initial_data, **kwargs)
         self.alert_type = "lightning"
-        self.distance_km = 0
         self.source = DATA_SOURCE_MQTT
-        self.expiry = self.timestamp + (60 * 60 * 10)
+        self.expiry = self.timestamp + (60 * 10)
         self.icon = "bolt"
         self.headline = "Lightning detected!"
         self.subtitle = f"Distance {self.distance_km}km"

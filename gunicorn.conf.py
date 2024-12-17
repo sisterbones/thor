@@ -1,5 +1,5 @@
 
-from os import environ, path
+from os import environ, path, cpu_count
 from sys import platform
 
 from dotenv import load_dotenv
@@ -12,3 +12,6 @@ bind = [
 ]
 
 if RUNTIME_DIRECTORY_EXISTS: bind.append('unix:/run/thor/thor.sock')
+
+#workers = 1
+threads = cpu_count()

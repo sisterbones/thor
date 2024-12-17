@@ -1,5 +1,6 @@
 [Unit]
 Description=Thor lightning detection and alert system
+Wants=thor-mqtt.service thor-autodiscovery.service
 
 [Service]
 User=thor
@@ -7,8 +8,8 @@ Group=thor
 WorkingDirectory=/opt/thor
 RuntimeDirectory=thor
 EnvironmentFile=/etc/thor/.env
-ExecStart=/opt/thor/.venv/bin/gunicorn "thor:create_app(use_mqtt=True)"
+ExecStart=/opt/thor/.venv/bin/gunicorn "thor:create_app()"
 
 [Install]
 WantedBy=multi-user.target
-
+Also=thor-autodiscovery.service thor-mqtt.service

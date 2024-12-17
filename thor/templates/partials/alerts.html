@@ -1,0 +1,165 @@
+<div class="bg-body-body card alert-card">
+    <div class="card-header">
+        <span class="fa-solid fa-warning"></span>
+        Current alerts
+    </div>
+    <ul class="list-group list-group-flush" id="alert-list">
+        {#        <li class="list-group-item" aria-hidden="true">#}
+        {#            <span class="fa-solid fa-question-circle"></span> <span class="placeholder placeholder-glow col-5"></span>#}
+        {#        </li>#}
+    </ul>
+    <div class="card-body">
+        <p class="card-text">Last updated <span data-time="0" id="alerts-updated-time">never</span>.</p>
+    </div>
+</div>
+
+<script type="module">
+    socket.on('connect', (reason) => {
+        socket.emit('ask', JSON.stringify(['alerts']));
+    })
+
+    const alertList = document.getElementById("alert-list");
+    const lastUpdated = document.getElementById("alerts-updated-time");
+
+    const rtf1 = new Intl.RelativeTimeFormat();
+
+    let updatedTime = new Date();
+
+    let alerts = [];
+    window.alerts = alerts;
+
+    function createCol() {
+        const col = document.createElement("div");
+        col.className = "col-fluid";
+        return col;
+    }
+
+    function buildListItem(alert) {
+        const li = document.createElement("li");
+        li.className = "list-group-item";
+
+        if (alert === null) {
+            li.classList.add("list-group-item-success");
+            li.innerHTML = '<span class="fa-solid fa-check-circle" aria-hidden="true"></span> No alerts.';
+            return li;
+        }
+
+        switch (alert.severity) {
+            case 2:
+                li.classList.add("list-group-item-warning");
+                break;
+            case 3:
+                li.classList.add("list-group-item-danger");
+        }
+
+        const rowA = document.createElement("div");
+        rowA.className = "row row-flex justify-content-start";
+        if (alert.icon) {
+            const iconDiv = document.createElement("div");
+            iconDiv.className = "font-2rem col-fluid flex-shrink-0";
+            iconDiv.innerHTML = `<span class='fa-solid fa-${alert.icon}'></span>`;
+            rowA.appendChild(iconDiv);
+        }
+        const texts = document.createElement("div");
+        texts.className = "col-fluid flex-grow-1 texts";
+        if (alert.headline) {
+            const headline = document.createElement("h4");
+            headline.className = "margin-0";
+            if (alert.source & 1<<5) headline.innerText = alert.source_headline;
+            else headline.innerText = alert.headline;
+            texts.appendChild(headline);
+
+        }
+        if (alert.subtitle) {
+            const subtitle = document.createElement("p");
+            subtitle.className = "margin-0";
+            if (alert.source & 1<<5) subtitle.innerText = alert.source_description;
+            else subtitle.innerText = alert.subtitle;
+            texts.appendChild(subtitle);
+        }
+        rowA.appendChild(texts);
+
+        const rowB = document.createElement("div");
+        rowB.className = "row row-flex";
+        if (alert.updated) {
+            const updatedDiv = createCol();
+            updatedDiv.innerHTML = `<span class="fa-solid fa-clock"></span> Updated <span title="${new Date(alert.updated * 1000)}" data-time="${alert.updated * 1000}" class="alert-time-updated">at some point</span>`;
+            rowB.appendChild(updatedDiv);
+        }
+        if (alert.expiry) {
+            const expiryDiv = createCol();
+            expiryDiv.innerHTML = `<span class="fa-solid fa-hourglass"></span> Expires <span title="${new Date(alert.expiry * 1000)}" data-time="${alert.expiry * 1000}" class="alert-time-expires">at some point</span>`;
+            rowB.appendChild(expiryDiv);
+        }
+        if (alert.source) {
+            if (alert.source & 1<<5) {
+                const source = createCol();
+                source.innerHTML = `<span class="fa-solid fa-book"></span> Source: <a href="https://met.ie"
+                                                                                    class="alert-source text-truncate text-reset">Met Éireann</a></div>`;
+                rowB.appendChild(source);
+            }
+        }
+
+        li.appendChild(rowA);
+        li.appendChild(rowB);
+
+        return li;
+    }
+
+    socket.on('alerts', (msg) => {
+        if (msg.refresh) {
+            alerts = msg.alerts;
+        } else {
+            let new_alert = alerts.findIndex(p => p.publisher_id === msg.publisher_id);
+            alerts[new_alert] = msg;
+        }
+
+        let listItems = [];
+
+        for (const alert of alerts) {
+            listItems.push(buildListItem(alert));
+        }
+        if (alerts.length <= 0) {
+            listItems.push(buildListItem(null));
+        }
+
+        alertList.replaceChildren(...listItems);
+        lastUpdated.dataset.time=Date.now();
+    })
+
+    function processTime(seconds){
+            const delta = Math.abs(seconds);
+
+            if (isNaN(seconds)) return "at some point";
+
+            if (delta <= 30) return rtf1.format(Math.round(-seconds), 'seconds');
+            else if (delta <= (60 * 60)) return rtf1.format(Math.round(-seconds / 60), 'minutes');
+            else if (delta <= (60 * 60 * 24)) return rtf1.format(Math.round(-seconds / 60 / 60), 'hours');
+            else return rtf1.format(Math.round(-seconds / 60 / 60 / 24), 'days');
+    }
+
+    function updateUpdatedTime() {
+        const currentDate = new Date();
+        const secondsSinceLastUpdate = Math.abs((currentDate - lastUpdated.dataset.time) / 1000);
+        let output;
+        if (Math.abs(secondsSinceLastUpdate) <= 20) {
+            output = "just now"
+        } else {
+            output = processTime(secondsSinceLastUpdate)
+        }
+
+        lastUpdated.innerText = output;
+
+        const updatedTimes = document.querySelectorAll(".alert-time-updated");
+        for (let date of updatedTimes) {
+            date.innerText = processTime((currentDate - date.dataset.time) / 1000);
+        }
+
+        const expiresTimes = document.querySelectorAll(".alert-time-expires");
+        for (let date of expiresTimes) {
+            date.innerText = processTime((currentDate - date.dataset.time) / 1000);
+        }
+    }
+
+    setInterval(updateUpdatedTime, 250)
+</script>

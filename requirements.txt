@@ -1,7 +1,6 @@
 Flask~=3.0.3
 Flask-APScheduler~=1.13.1
 Flask-Assets~=2.1.0
-#Flask-MQTT~=1.2.1
 gunicorn==23.0.0
 Werkzeug~=3.0.4
 Flask-SocketIO~=5.4.1
@@ -14,3 +13,6 @@ click~=8.1.7
 python-dotenv~=1.0.1
 paho-mqtt~=2.1.0
 python-socketio~=5.11.4
+websocket-client~=1.8.0
+rq~=2.0.0
+redis~=5.2.1

@@ -1,8 +1,11 @@
+import socket
+import ipaddress
 from os import environ
 from time import time
 
 from flask import Blueprint, current_app, jsonify, request
 
+import thor.db as db
 from thor.db import get_db
 
 bp = Blueprint("api", __name__, url_prefix='/api')
@@ -39,17 +42,27 @@ def register_node(node_id):
         db.execute('INSERT INTO nodes (id, last_ip) VALUES (?, ?)', [node_id, request.remote_addr])
     db.commit()
 
+    # Get MQTT IP, not all nodes support hostnames.
+    MQTT_HOST_IP = socket.gethostbyname(environ.get('MQTT_BROKER'))
+    if environ.get('MQTT_BROKER') == "localhost":
+        MQTT_HOST_IP = current_app.config['LOCAL_IP']
+
+    print(MQTT_HOST_IP)
+
     return jsonify({
         'timestamp': time(),
         'mqtt': {
             'username': 'service',
             'password': environ.get('MQTT_SERVICE_PASSWORD'),
             'port': environ.get('MQTT_PORT', 1883),
-            'host': environ.get('MQTT_BROKER', 'localhost')
+            'host': MQTT_HOST_IP
         },
         'wifi': None
     })
 
+@bp.route('/alerts/active')
+def get_active_alerts():
+    return jsonify(db.get_active_alerts())
 
 @bp.route('/config/<config_id>', methods=['GET', 'POST', 'PATCH'])
 def config(config_id):

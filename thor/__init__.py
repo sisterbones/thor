@@ -6,30 +6,31 @@ from secrets import token_hex
 
 import werkzeug.exceptions
 from dotenv import load_dotenv
+
 load_dotenv()
 from flask import Flask, render_template
-# from flask_apscheduler import APScheduler
 from flask_assets import Environment, Bundle
 from flask_socketio import SocketIO
 from rich.logging import RichHandler
 
+import thor.misc as misc
 from thor.alert import *
 from thor.constants import *
 from thor.providers import MetNoWeatherProvider, MetEireannWeatherWarningProvider
 
-
 # Set up logging
 FORMAT = "%(message)s"
 logging.basicConfig(
-    level="INFO", format=FORMAT, datefmt="[%X]", handlers=[RichHandler()]
+    level="DEBUG", format=FORMAT, datefmt="[%X]", handlers=[RichHandler()]
 )
 
 log = logging.getLogger("rich")
 
 assets = Environment()
-# mqtt = Mqtt()
-# scheduler = APScheduler()
-socketio = SocketIO()
+if environ.get('REDIS_URL'):
+    socketio = SocketIO(message_queue=environ.get('REDIS_URL'))
+else:
+    socketio = SocketIO()
 
 def get_time(strftime="%H:%M"):
     # Returns the current time as a string in the format "HH:MM"
@@ -41,6 +42,7 @@ def create_app(use_mqtt=False):
 
     # Template configs
     if environ.get('FLASK_ENV') == 'development':
+        app.config['DEBUG'] = True
         app.config['TEMPLATES_AUTO_RELOAD'] = True
 
     app.config['SECRET_KEY'] = environ.get('SECRET_KEY', token_hex(32))
@@ -48,8 +50,8 @@ def create_app(use_mqtt=False):
     # Database URI
     app.config["DATABASE"] = environ.get('DATABASE', ":memory:")
 
-    # Python RQ stuff
-    # app.config['REDIS_URL'] = environ.get('REDIS_URL', 'redis://localhost')
+    # Might be useful to keep track of this in the app config idk
+    app.config['REDIS_URL'] = environ.get('REDIS_URL', 'redis://localhost')
 
     # MQTT configuration
     app.config['MQTT_BROKER_URL'] = environ.get('MQTT_BROKER', 'localhost')
@@ -57,6 +59,8 @@ def create_app(use_mqtt=False):
     app.config['MQTT_USERNAME'] = environ.get('MQTT_USERNAME', 'thor')
     app.config['MQTT_PASSWORD'] = environ.get('MQTT_PASSWORD', '')
     app.config['MQTT_REFRESH_TIME'] = 1.0
+
+    app.config['LOCAL_IP'] = misc.get_ip()
 
     # Scheduler config
     # app.config['SCHEDULER_API_ENABLED'] = True
@@ -91,19 +95,35 @@ def create_app(use_mqtt=False):
 
         weather = MetNoWeatherProvider(lat=app.config.get('HOME_LAT', 0), long=app.config.get('HOME_LONG', 0)).fetch()
 
-        weather['topic'] = 'weather'
+        if methods & DATA_OUTPUT_MQTT:
+            socketio.emit('weather', weather, namespace="/mqtt")
+        if methods & DATA_OUTPUT_SOCKETIO:
+            socketio.emit('weather', weather)
 
-        socketio.emit('weather', weather)
+    def publish_current_alerts(methods=3):
+        log.info('Serving current alerts')
+
+        current_alerts = db.get_active_alerts()
+        payload = {
+            "alerts": current_alerts,
+            "timestamp": time.time(),
+            "refresh": True
+        }
+
+        if methods & DATA_OUTPUT_MQTT:
+            socketio.emit('alerts', payload, namespace="/mqtt")
+        if methods & DATA_OUTPUT_SOCKETIO:
+            socketio.emit('alerts', payload)
+
 
     def publish_alert(alert: Alert, methods=3):
-        topic = f'thor/alerts/{alert.alert_type}'
-        # Add the alert to the alerts database
-        db.add_new_alert(alert, app)
-        # if methods & DATA_OUTPUT_MQTT:
-        #     mqtt.publish('thor/alerts', json.dumps(alert.__dict__).encode('utf-8')) # for nodes subscribed to all alerts
-        #     mqtt.publish(topic, json.dumps(alert.__dict__).encode('utf-8'))
-        socketio.emit(f'alerts', alert.__dict__) # For nodes looking for all alerts
-        socketio.emit(f'alerts/{alert.alert_type}', alert.__dict__) # For nodes only looking at specific alerts
+        log.info(f"Publishing {alert.alert_type} alert...")
+        if methods & DATA_OUTPUT_MQTT:
+            socketio.emit(f'alerts', alert.__dict__, namespace="/mqtt")  # For nodes looking for all alerts
+            socketio.emit(f'alerts/{alert.alert_type}', alert.__dict__, namespace="/mqtt")  # For nodes only looking at specific alerts
+        if methods & DATA_OUTPUT_SOCKETIO:
+            socketio.emit(f'alerts', alert.__dict__)  # For nodes looking for all alerts
+            socketio.emit(f'alerts/{alert.alert_type}', alert.__dict__)  # For nodes only looking at specific alerts
 
     # @mqtt.on_message()
     # @socketio.on('mqtt')
@@ -119,34 +139,52 @@ def create_app(use_mqtt=False):
     #         alert.distance_km = 15
     #         publish_alert(alert)
 
-    # @socketio.on('ask', namespace="/mqtt")
-    @socketio.on('ask')
-    def sio_ask(message):
+    def ask_common(message, output=3):
         if 'weather' in message:
             # Calls publish_weather
-            publish_weather(DATA_OUTPUT_SOCKETIO)
+            publish_weather(output)
+        if 'alerts' in message:
+            MetEireannWeatherWarningProvider().fetch()
+            publish_current_alerts(output)
 
-    @socketio.on('update/lighting')
+    @socketio.on('ask')
+    def sio_ask(message):
+        ask_common(message, DATA_OUTPUT_SOCKETIO)
+
+    @socketio.on('ask', namespace="/mqtt")
+    def mqtt_ask(message):
+        ask_common(message, DATA_OUTPUT_MQTT)
+
+    @socketio.on('update/lightning')
+    @socketio.on('update/lightning', namespace="/mqtt")
     def sio_update(message):
         try:
             message = json.loads(message)
         except:
             pass
 
-        alert = LightningAlert()
-        alert.distance_km = message.get("distance")
+        # log.debug(message)
+
+        alert = LightningAlert(distance_km=int(message.get("distance")))
 
         # If there was lighting detected in the last ten minutes, bundle it in with that alert.
-        alerts = db.get_active_alerts(app, "lightning")
+        alerts = db.get_active_alerts("lightning", output_type="alert")
         if not alerts:
+            db.add_new_alert(alert)
             publish_alert(alert)
 
-        print(alerts)
-
         # Check if there's any lighting strikes that are closer
-        # closer_strikes = Object.keys()
-        # if not closer_strikes:
-        #     publish_alert(alert)
+        closer_strikes = [x for x in alerts if x.distance_km <= alert.distance_km]
+        if not closer_strikes:
+            if alerts:
+                alerts[0].distance_km = alert.distance_km
+                alerts[0].subtitle = f"Distance {alert.distance_km}km"
+                alerts[0].updated = time.time()
+                alerts[0].expiry = time.time() + (60 * 10)
+                alert = alerts[0]
+
+            db.add_new_alert(alert)
+            publish_alert(alert)
 
         # Otherwise do nothing to avoid sending too many alerts.
 
@@ -159,8 +197,8 @@ def create_app(use_mqtt=False):
     #     mqtt.subscribe('thor/status/#')
     #     mqtt.subscribe('thor/update/#')
 
-    # import thor.testing_endpoints
-    # app.register_blueprint(thor.testing_endpoints.bp)
+    import thor.testing
+    app.register_blueprint(thor.testing.bp)
 
     import thor.api
     app.register_blueprint(thor.api.bp)
@@ -172,4 +210,4 @@ def create_app(use_mqtt=False):
 
 if __name__ == '__main__':
     debug_app = create_app()
-    debug_app.run(use_reloader=False, debug=True, host=environ.get("HOST", "0.0.0.0"), port=environ.get("PORT", 5000))
+    debug_app.run(debug=True, host=environ.get("HOST", "0.0.0.0"), port=environ.get("PORT", 5000))

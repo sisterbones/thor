@@ -1,0 +1,33 @@
+{% extends 'base.html' %}
+
+{% block title %}TESTING{% endblock %}
+
+{% block content %}
+    <h1>TESTING</h1>
+    <h2>Test alerts</h2>
+    <h3>Lighting</h3>
+    <form id="lightning-alert-form">
+        <div class="mb-3">
+            <label for="lightning-distance" class="form-label">Distance</label>
+            <input type="number" class="form-control" id="lightning-distance" max="15" min="0" value="10" />
+        </div>
+        <button type="submit" class="btn btn-primary">Send lightning alert</button>
+    </form>
+
+    <script>
+        let lightningForm = document.getElementById("lightning-alert-form");
+        lightningForm.addEventListener("submit", ev => {
+            ev.preventDefault();
+
+            console.log("Emitting...", document.getElementById("lightning-distance").value);
+
+            socket.emit("update/lightning", {
+                distance: document.getElementById("lightning-distance").value,
+                timestamp: Date.now() / 1000
+            }, (response) => {
+                console.log("Got ack from THOR.")
+            });
+        })
+    </script>
+
+{% endblock %}

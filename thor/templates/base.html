@@ -17,6 +17,7 @@
 
     <script>
         const socket = io();
+        window.socket = socket;
     </script>
 </head>
 <body>
@@ -34,6 +35,12 @@
                         <a href="{{ url_for('index') }}" class="nav-link {% if url_for(request.endpoint, **request.view_args) == '/' %} active"
                            aria-current="page{% endif %}">Dashboard</a>
                     </li>
+                    {% if config.get("DEBUG") %}
+                    <li class="nav-item">
+                        <a href="{{ url_for('testing.index') }}" class="nav-link {% if url_for(request.endpoint, **request.view_args) == '/testing/' %} active"
+                           aria-current="page{% endif %}">TESTING</a>
+                    </li>
+                    {% endif %}
                 </ul>
             </div>
         </nav>

@@ -1,0 +1,25 @@
+[Unit]
+# A short human readable title of the unit
+Description=MQTT SHIM for Thor.
+# A list of units whose activations will occur before this unit starts.
+After=network.target
+# A list of units to activate when this one is activated, if any unit listed here fails this unit will deactivate.
+Requires=thor.service
+
+[Service]
+# Configures the process start-up type for this service unit, one of:
+# simple - The process defined in ExecStart= will stay in the foreground while the unit is activated.
+# forking - The process defined in ExecStart= will fork a background process and exit right away.
+# oneshot - The process will exit right away, use with RemainAfterExit= to ensure the serice is marked as active.
+# Consult the documentantion for types (https://www.freedesktop.org/software/systemd/man/systemd.service.html#Type=) other options.
+Type=simple
+User=thor
+Group=thor
+WorkingDirectory=/opt/thor
+EnvironmentFile=/etc/thor/.env
+ExecStart=/opt/thor/.venv/bin/python3 -m thor-mqtt
+Restart=on-failure
+
+[Install]
+# A list of units who when activated will try and activate this unit
+WantedBy=multi-user.target

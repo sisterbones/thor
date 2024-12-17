@@ -4,6 +4,13 @@
 
 {% block content %}
     <div class="container-fluid">
-        {% include 'partials/weather.html' %}
+        <div class="row">
+            <div class="col-md">
+                {% include 'partials/weather.html' %}
+            </div>
+            <div class="col-md">
+                {% include 'partials/alerts.html' %}
+            </div>
+        </div>
     </div>
 {% endblock %}
