@@ -52,6 +52,27 @@
                 li.classList.add("list-group-item-danger");
         }
 
+        if (alert.status = "Info") {
+            const rowA = document.createElement("div");
+            rowA.className = "row row-flex justify-content-start";
+            if (alert.icon) {
+                const iconDiv = document.createElement("div");
+                iconDiv.className = "col-fluid flex-shrink-0";
+                iconDiv.innerHTML = `<span class='fa-solid fa-${alert.icon}'></span>`;
+                rowA.appendChild(iconDiv);
+            }
+            const texts = document.createElement("div");
+            texts.className = "col-fluid flex-grow-1 texts";
+            if (alert.headline) {
+                const headline = document.createElement("h4");
+                headline.className = "margin-0";
+                // if (alert.source & 1<<5) headline.innerText = alert.source_headline;
+                headline.innerText = alert.headline;
+                texts.appendChild(headline);
+            }
+            return;
+        }
+
         const rowA = document.createElement("div");
         rowA.className = "row row-flex justify-content-start";
         if (alert.icon) {

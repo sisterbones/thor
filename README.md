@@ -4,6 +4,38 @@
   <p><strong>Lightning Detection & Alert System</strong></p>
 </div>
 
+# Install
+
+## From source
+
+The instructions assume you are using Linux. Windows support is likely but I have't tested it.
+
+0. Install prerequisites
+
+To install THOR like this, make sure you have:
+- `python3`
+- `python3-venv`
+- `git`
+- `sass` (for example with `sudo npm install -g sass`)
+
+1. Clone the repository from GitHub
+
+```bash
+git clone https://github.com/sisterbones/thor.git
+cd thor
+git submodule init
+```
+
+2. Create a virtual environment and enter it
+
+(Assumes you're using `bash`, may differ in different shells)
+
+```bash
+python -m venv .venv/
+source .venv/bin/activate
+```
+
+
 # 3rd Party Libraries
 
 This repository includes the following third-party libraries:

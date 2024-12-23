@@ -26,6 +26,12 @@ class Alert:
         for key in kwargs:
             setattr(self, key, kwargs[key])
 
+class InfoAlert(Alert):
+    """This alert type doesnt show as an alert to be concerned of, its just informational"""
+    def __init__(self, *initial_data, **kwargs):
+        super().__init__(*initial_data, **kwargs)
+        self.status = "Info"
+
 
 class MetEireannWeatherWarning(Alert):
     def __init__(self, *initial_data, cap_id: str = "", alert_type: str = "Unknown",

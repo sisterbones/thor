@@ -1,12 +1,14 @@
 import datetime
+import json
 import time
 
 import requests
 from flask import current_app
 
 from thor.constants import *
-from thor.alert import MetEireannWeatherWarning
+from thor.alert import MetEireannWeatherWarning, InfoAlert
 from thor.db import add_new_alert
+from thor.misc import has_internet_connection
 
 
 class WeatherProvider:
@@ -97,11 +99,31 @@ class CachingWeatherProvider(WeatherProvider):
     def __init__(self):
         self.last_fetched_time = 0
         self.seconds_to_live = 6000  # 10 minutes
-        self.cached_response = {}
+        self.cached_response = None
+        self.user_agent = "Thor Lightning Detection & Alert System (in development) https://github.com/sisterbones/thor"
+        self.query = {}
 
     def fetch(self) -> dict:
-        if time.time() <= self.last_fetched_time + self.seconds_to_live:
+        if not has_internet_connection():
             return self.cached_response
+        if time.time() <= self.last_fetched_time + self.seconds_to_live and self.cached_response:
+            print("Serving cache")
+            return self.cached_response
+        try:    
+            data_request = requests.get(
+                self.base_url,
+                self.query,
+                timeout=(1, 10),
+                headers={
+                    "User-Agent": self.user_agent
+                }
+            )
+        except (requests.exceptions.ConnectionError, requests.exceptions.ReadTimeout):
+            print("Couldnt connect.")
+            return self.cached_response
+        self.cached_response = data_request
+        self.last_fetched_time = time.time()
+        return data_request
 
 
 class MetNoWeatherProvider(CachingWeatherProvider):
@@ -113,28 +135,22 @@ class MetNoWeatherProvider(CachingWeatherProvider):
         self.lat = lat
         self.long = long
 
-        self.user_agent = "Thor Lightning Alert System (in development) https://github.com/sisterbones/thor"
         self.base_url = 'https://api.met.no/weatherapi/locationforecast/2.0/compact'
+        self.query = {"lat": self.lat, "lon": self.long}
 
     def fetch(self) -> dict:
         """Fetches data from the MET Norway Location Forcast API"""
 
-        cache = super().fetch()
-
-        if not cache:
-            data_request = requests.get(
-                self.base_url,
-                {
-                    "lat": self.lat,
-                    "lon": self.long
-                },
-                headers={
-                    "User-Agent": self.user_agent
+        try:
+            data = super().fetch()
+            data = data.json()
+        except (json.JSONDecodeError, TypeError):
+            return {"timestamp": time.time(), "error": "no_internet", "icon": "circle-exclamation", "source": {"label": "Norwegian Meteorological Institute", "href": "https://met.no"}, "weather":  {
+                "temperature": 0.0,
+                "conditions": "unknown",
+                "headline": "Unavailable"
                 }
-            )
-            data = data_request.json()
-        else:
-            return cache
+            }
 
         icon = met_no_symbol_to_font_awesome(
             data['properties']['timeseries'][0]['data']['next_12_hours']['summary']['symbol_code'])
@@ -154,7 +170,6 @@ class MetNoWeatherProvider(CachingWeatherProvider):
             }
         }
 
-        self.cached_response = response
         return response
 
 
@@ -162,18 +177,20 @@ class MetEireannWeatherWarningProvider(CachingWeatherProvider):
     def __init__(self, region="IRELAND"):
         super().__init__()
         self.region = region
-        self.base_url = 'https://www.met.ie/Open_Data/json/'
+        self.base_url = f'https://www.met.ie/Open_Data/json/warning_{self.region}.json'
 
     def fetch(self) -> dict:
         cache = super().fetch()
 
-        if not cache:
-            data_request = requests.get(
-                self.base_url + f"warning_{self.region}.json",
-            )
-            data = data_request.json()
-        else:
-            return cache
+        try:
+            data = super().fetch().json()
+        except (TypeError, AttributeError):
+            alert = InfoAlert(publisher_id="metie_ww_error",
+                            headline = "Can't get weather warnings from Met Éireann.")
+            add_new_alert(alert)
+            return {"timestamp": time.time(), "error": "no_internet", "warnings": [
+                    alert
+                ]}
 
         warnings = []
 
@@ -198,7 +215,5 @@ class MetEireannWeatherWarningProvider(CachingWeatherProvider):
             "timestamp": time.time(),
             "warnings": warnings,
         }
-
-        self.cached_response = response
 
         return response
