@@ -144,7 +144,7 @@ def create_app(use_mqtt=False):
             # Calls publish_weather
             publish_weather(output)
         if 'alerts' in message:
-            MetEireannWeatherWarningProvider().fetch()
+            # MetEireannWeatherWarningProvider().fetch()
             publish_current_alerts(output)
 
     @socketio.on('ask')
