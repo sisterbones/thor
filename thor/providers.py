@@ -202,9 +202,3 @@ class MetEireannWeatherWarningProvider(CachingWeatherProvider):
         self.cached_response = response
 
         return response
-
-# Testing
-# class TESTINGMetEireannWeatherWarningProvider(MetEireannWeatherWarningProvider):
-#     def __init__(self, region="IRELAND"):
-#         super().__init__(region)
-#         self.base_url = "http://localhost:5000/meteireann/weatherwarning/"

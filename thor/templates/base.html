@@ -6,14 +6,14 @@
     <title>{% block title %}{% endblock %}</title>
 
     {% assets "scss_all" %}
-        <link rel="stylesheet" href="{{ ASSET_URL }}" />
+        <link rel="stylesheet" href="{{ ASSET_URL }}"/>
     {% endassets %}
 
     <script src="{{ url_for('static', filename='/vendor/bootstrap/dist/js/bootstrap.bundle.min.js') }}"></script>
     <script src="{{ url_for('static', filename='/vendor/font-awesome/js/fontawesome.js') }}" defer></script>
     <script src="{{ url_for('static', filename='/vendor/font-awesome/js/solid.js') }}" defer></script>
     <script src="{{ url_for('static', filename='/vendor/socket.io.js') }}"></script>
-{#    <script src="{{ url_for('static', filename='/vendor/esm-module-shims.js') }}"></script>#}
+    {#    <script src="{{ url_for('static', filename='/vendor/esm-module-shims.js') }}"></script>#}
 
     <script>
         const socket = io();
@@ -21,86 +21,93 @@
     </script>
 </head>
 <body>
-    <header class="navbar navbar-expand-lg bg-body-tertiary">
-        <nav class="container-fluid">
-            <a href="{{ url_for('index') }}" class="navbar-brand mb-0 h1">{{ config.get('APP_TITLE', 'Thor') }}</a>
-            <button class="navbar-toggler" type="button" data-bs-toggle="collapse"
-                    data-bs-target="#mainNavContents" aria-controls="mainNavContents" aria-expanded="true"
-                    aria-label="Toggle Navigation">
-                        <span class="navbar-toggler-icon"></span>
-            </button>
-            <div id="mainNavContents" class="collapse navbar-collapse">
-                <ul class="navbar-nav me-auto mb-0 mb-lg-0">
-                    <li class="nav-item">
-                        <a href="{{ url_for('index') }}" class="nav-link {% if url_for(request.endpoint, **request.view_args) == '/' %} active"
+<header class="navbar navbar-expand-lg bg-body-tertiary">
+    <nav class="container-fluid">
+        <a href="{{ url_for('index') }}" class="navbar-brand mb-0 h1">{{ config.get('APP_TITLE', 'Thor') }}</a>
+        <button class="navbar-toggler" type="button" data-bs-toggle="collapse"
+                data-bs-target="#mainNavContents" aria-controls="mainNavContents" aria-expanded="true"
+                aria-label="Toggle Navigation">
+            <span class="navbar-toggler-icon"></span>
+        </button>
+        <div id="mainNavContents" class="collapse navbar-collapse">
+            <ul class="navbar-nav me-auto mb-0 mb-lg-0">
+                <li class="nav-item">
+                    <a href="{{ url_for('index') }}"
+                       class="nav-link {% if url_for(request.endpoint, **request.view_args) == url_for('index') %} active"
                            aria-current="page{% endif %}">Dashboard</a>
-                    </li>
-                    {% if config.get("DEBUG") %}
+                </li>
+                <li class="nav-item">
+                    <a href="{{ url_for('settings.index') }}"
+                       class="nav-link {% if url_for(request.endpoint, **request.view_args) == url_for('settings.index') %} active"
+                           aria-current="page{% endif %}">Settings</a>
+                </li>
+                {% if config.get("DEBUG") %}
                     <li class="nav-item">
-                        <a href="{{ url_for('testing.index') }}" class="nav-link {% if url_for(request.endpoint, **request.view_args) == '/testing/' %} active"
-                           aria-current="page{% endif %}">TESTING</a>
+                        <a href="{{ url_for('testing.index') }}"
+                           class="nav-link {% if url_for(request.endpoint, **request.view_args) == '/testing/' %} active"
+                               aria-current="page{% endif %}">TESTING</a>
                     </li>
-                    {% endif %}
-                </ul>
-            </div>
-        </nav>
-    </header>
-
-    <main class="container-xxl margin-tb-1rem">
-        {% block content %}{% endblock %}
-    </main>
-
-    <footer>
-
-    </footer>
-
-    <div class="toast-container bottom-0 start-0 p-3 position-fixed">
-        <div class="toast text-bg-danger" id="disconnect-toast" role="alert" aria-live="assertive" aria-atomic="true">
-            <div class="toast-header">
-                <strong class="me-auto">Error</strong>
-                <small id="disconnect-time" class="text-body-secondary"></small>
-                <button type="button" class="btn-close" data-bs-dismiss="toast" aria-label="Close"></button>
-            </div>
-            <div class="toast-body">
-                Connection to Thor was lost. Reason:
-                <div id="disconnect-reason"></div>
-            </div>
+                {% endif %}
+            </ul>
         </div>
+    </nav>
+</header>
 
-        <div class="toast" id="reconnect-toast" role="alert" aria-live="assertive" aria-atomic="true">
-            <div class="toast-header">
-                <strong class="me-auto">Error</strong>
-                <small id="disconnect-time" class="text-body-secondary"></small>
-            </div>
-            <div class="toast-body">
-                Connection regained.
-            </div>
+<main class="container-xxl margin-tb-1rem">
+    {% block content %}{% endblock %}
+</main>
+
+<footer>
+
+</footer>
+
+<div class="toast-container bottom-0 start-0 p-3 position-fixed">
+    <div class="toast text-bg-danger" id="disconnect-toast" role="alert" aria-live="assertive" aria-atomic="true">
+        <div class="toast-header">
+            <strong class="me-auto">Error</strong>
+            <small id="disconnect-time" class="text-body-secondary"></small>
+            <button type="button" class="btn-close" data-bs-dismiss="toast" aria-label="Close"></button>
+        </div>
+        <div class="toast-body">
+            Connection to Thor was lost. Reason:
+            <div id="disconnect-reason"></div>
         </div>
     </div>
 
-    <script>
-        const disconnectToastEl = document.getElementById('disconnect-toast');
-        const disconnectToast = new bootstrap.Toast(disconnectToastEl, {autohide: false});
-        const disconnectReason = document.getElementById('disconnect-reason');
+    <div class="toast" id="reconnect-toast" role="alert" aria-live="assertive" aria-atomic="true">
+        <div class="toast-header">
+            <strong class="me-auto">Error</strong>
+            <small id="disconnect-time" class="text-body-secondary"></small>
+        </div>
+        <div class="toast-body">
+            Connection regained.
+        </div>
+    </div>
+</div>
 
-        const reconnectToastEl = document.getElementById('reconnect-toast');
-        const reconnectToast = new bootstrap.Toast(disconnectToastEl);
+<script>
+    const disconnectToastEl = document.getElementById('disconnect-toast');
+    const disconnectToast = new bootstrap.Toast(disconnectToastEl, {autohide: false});
+    const disconnectReason = document.getElementById('disconnect-reason');
 
-        socket.on("disconnect", (reason) => {
-            disconnectToast.show()
-            if (socket.active) {
-                disconnectReason.innerText = "Unexpectedly disconnected. Trying to reconnect..."
-            } else {
-                // the connection was forcefully closed by the server or the client itself
-                // in that case, `socket.connect()` must be manually called in order to reconnect
-                disconnectReason.innerText = `${reason}`
-                console.log(reason);
-            }
-        });
+    const reconnectToastEl = document.getElementById('reconnect-toast');
+    const reconnectToast = new bootstrap.Toast(disconnectToastEl);
 
-        socket.on("connect", (reason) => {
-            disconnectToast.hide()
-        });
-    </script>
+    socket.on("disconnect", (reason) => {
+        disconnectToast.show()
+        if (socket.active) {
+            disconnectReason.innerText = "Unexpectedly disconnected. Trying to reconnect..."
+        } else {
+            // the connection was forcefully closed by the server or the client itself
+            // in that case, `socket.connect()` must be manually called in order to reconnect
+            disconnectReason.innerText = `${reason}`
+            console.log(reason);
+        }
+    });
+
+    socket.on("connect", (reason) => {
+        disconnectToast.hide()
+    });
+</script>
 </body>
 </html>

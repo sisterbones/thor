@@ -62,9 +62,6 @@ def create_app(use_mqtt=False):
 
     app.config['LOCAL_IP'] = misc.get_ip()
 
-    # Scheduler config
-    # app.config['SCHEDULER_API_ENABLED'] = True
-
     # Configure GPS location
     app.config['HOME_LAT'] = environ.get('HOME_LAT', 0.0)
     app.config['HOME_LONG'] = environ.get('HOME_LONG', 0.0)
@@ -76,7 +73,6 @@ def create_app(use_mqtt=False):
     db.init_app(app)
     assets.init_app(app)
     socketio.init_app(app)
-    # if use_mqtt: mqtt.init_app(app)
 
     scss = Bundle('styles/style.scss', filters="scss", output="styles/style.css")
     assets.register('scss_all', scss)
@@ -89,7 +85,6 @@ def create_app(use_mqtt=False):
     def not_found(error):
         return render_template('not-found.html'), 404
 
-    # @scheduler.task('cron', id='publish_weather', minute="*/10")
     def publish_weather(methods=3):
         log.info('Serving weather')
 
@@ -115,7 +110,6 @@ def create_app(use_mqtt=False):
         if methods & DATA_OUTPUT_SOCKETIO:
             socketio.emit('alerts', payload)
 
-
     def publish_alert(alert: Alert, methods=3):
         log.info(f"Publishing {alert.alert_type} alert...")
         if methods & DATA_OUTPUT_MQTT:
@@ -125,26 +119,10 @@ def create_app(use_mqtt=False):
             socketio.emit(f'alerts', alert.__dict__)  # For nodes looking for all alerts
             socketio.emit(f'alerts/{alert.alert_type}', alert.__dict__)  # For nodes only looking at specific alerts
 
-    # @mqtt.on_message()
-    # @socketio.on('mqtt')
-    # def handle_mqtt_message(data):
-    #     log.debug(data)
-    #     if data['topic'] == 'thor/ask':
-    #         # Send weather information over 'thor/weather'
-    #         publish_weather(DATA_OUTPUT_MQTT)
-    #     if data['topic'].startswith('thor/update/lightning'):
-    #         # Send a lightning alert to every device
-    #         alert = LightningAlert()
-    #         log.debug("Alerting of lightning.")
-    #         alert.distance_km = 15
-    #         publish_alert(alert)
-
     def ask_common(message, output=3):
         if 'weather' in message:
-            # Calls publish_weather
             publish_weather(output)
         if 'alerts' in message:
-            # MetEireannWeatherWarningProvider().fetch()
             publish_current_alerts(output)
 
     @socketio.on('ask')
@@ -162,8 +140,6 @@ def create_app(use_mqtt=False):
             message = json.loads(message)
         except:
             pass
-
-        # log.debug(message)
 
         alert = LightningAlert(distance_km=int(message.get("distance")))
 
@@ -186,24 +162,14 @@ def create_app(use_mqtt=False):
             db.add_new_alert(alert)
             publish_alert(alert)
 
-        # Otherwise do nothing to avoid sending too many alerts.
-
-
-        # @mqtt.on_connect()
-    # def mqtt_on_connect(client, userdata, flags, rc):
-    #     mqtt.publish('thor/status', f'{get_time()}: Hub online'.encode('utf-8'))
-    #     publish_weather(DATA_OUTPUT_MQTT)
-    #     mqtt.subscribe('thor/ask')
-    #     mqtt.subscribe('thor/status/#')
-    #     mqtt.subscribe('thor/update/#')
-
     import thor.testing
     app.register_blueprint(thor.testing.bp)
 
     import thor.api
     app.register_blueprint(thor.api.bp)
 
-    # scheduler.start()
+    import thor.settings
+    app.register_blueprint(thor.settings.bp)
 
     return app
 

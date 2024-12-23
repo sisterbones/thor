@@ -1,0 +1,28 @@
+{% macro render_std_field(field) %}
+    <div class="mb-3 row">
+        <div class="col">
+            {{ field.label(class_="col-form-label") }}
+        </div>
+        <div class="col">
+            {{ field(class_="form-control", **kwargs)|safe }}
+        </div>
+    </div>
+{% endmacro %}
+
+{% macro render_number_field(field) %}
+    <div class="mb-3 row">
+        <div class="col-fluid">
+            {{ field.label(class_="form-label") }}
+        </div>
+        <div class="col-fluid">
+            {{ field(class_="form-control", type="number", **kwargs)|safe }}
+        </div>
+    </div>
+{% endmacro %}
+
+{% macro render_checkbox(field) %}
+    <div class="form-check">
+        {{ field(class_="form-check-input", **kwargs)|safe }}
+        {{ field.label(class_="form-check-label") }}
+    </div>
+{% endmacro %}

@@ -75,11 +75,11 @@ def get_active_alerts(type: str = None, output_type: str = "dict"):
         else:
             alerts = db.execute("SELECT * FROM alerts WHERE expiry >= unixepoch() AND type = ? ORDER BY timestamp",
                                 [type]).fetchall()
-        # log.debug("Got alerts! %s", alerts)
+
         to_return = []
         for alert in alerts:
             data = json.loads(alert['data'])
-            # log.debug(data)
+
             if alert["type"] == "lightning":
                 alert_obj = LightningAlert(data)
             elif data.get("source") & DATA_SOURCE_METEIREANN:
