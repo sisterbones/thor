@@ -15,6 +15,9 @@
     <script src="{{ url_for('static', filename='/vendor/socket.io.js') }}"></script>
     {#    <script src="{{ url_for('static', filename='/vendor/esm-module-shims.js') }}"></script>#}
 
+    {% block custom_head %}
+    {% endblock %}
+
     <script>
         const socket = io();
         window.socket = socket;

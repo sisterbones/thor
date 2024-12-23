@@ -62,10 +62,6 @@ def create_app(use_mqtt=False):
 
     app.config['LOCAL_IP'] = misc.get_ip()
 
-    # Configure GPS location
-    app.config['HOME_LAT'] = environ.get('HOME_LAT', 0.0)
-    app.config['HOME_LONG'] = environ.get('HOME_LONG', 0.0)
-
     # SASS configuration
     app.config['SASS_LOAD_PATHS'] = ['vendor/']
 
@@ -73,6 +69,11 @@ def create_app(use_mqtt=False):
     db.init_app(app)
     assets.init_app(app)
     socketio.init_app(app)
+
+    # Configure GPS location
+    with app.app_context():
+        app.config['HOME_LAT'] = db.get_config('HOME_LAT', environ.get('HOME_LAT', 0.0))
+        app.config['HOME_LONG'] = db.get_config("HOME_LONG", environ.get('HOME_LONG', 0.0))
 
     scss = Bundle('styles/style.scss', filters="scss", output="styles/style.css")
     assets.register('scss_all', scss)

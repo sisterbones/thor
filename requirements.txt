@@ -17,4 +17,3 @@ websocket-client~=1.8.0
 rq~=2.0.0
 redis~=5.2.1
 WTForms~=3.2.1
-flask-wtf~=1.2.2

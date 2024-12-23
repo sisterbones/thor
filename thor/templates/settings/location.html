@@ -3,19 +3,72 @@
 
 {% block title %}Location Settings{% endblock %}
 
+{% block custom_head %}
+    <link rel="stylesheet" href="{{ url_for("static", filename="vendor/leaflet/leaflet.css") }}"/>
+    <script src="{{ url_for("static", filename="vendor/leaflet/leaflet.js") }}"></script>
+
+    <style>
+        #map {
+            height: 100%;
+            min-height: 300px;
+        }
+    </style>
+{% endblock %}
+
 {% block content %}
     <h1><span class="fa-solid fa-map-pin"></span> Location Settings</h1>
     <form method=post>
-        {{ form.hidden_tag() }}
         <div class="row">
-            <div class="col-md-5">
-                <div class="form">
-                    {{ render_number_field(form.location_lat, min=-90, max=90, value=0) }}
-                    {{ render_number_field(form.location_long, min=-180, max=180, value=0) }}
+            <div class="col-md">
+                <div class="form-group">
+                    {{ render_std_field(form.location_lat, min=-90, max=90, value=loc.get("location_lat")) }}
+                    {{ render_std_field(form.location_long, min=-180, max=180, value=loc.get("location_long")) }}
                 </div>
+                <button type="submit" class="btn btn-primary">Save</button>
+            </div>
+            <div class="col-md-10">
+                <div id="map"></div>
             </div>
         </div>
-
-        <button type="submit" class="btn btn-primary">Save</button>
     </form>
+
+    <script>
+        const map = L.map('map').setView([{{loc.get("location_lat", 0)}}, {{loc.get("location_long", 0)}}], 13);
+
+        L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', {
+            maxZoom: 19,
+            attribution: '&copy; <a href="http://www.openstreetmap.org/copyright">OpenStreetMap</a>'
+        }).addTo(map);
+
+        const marker = L.marker([{{loc.get("location_lat", 0)}}, {{loc.get("location_long", 0)}}]).addTo(map);
+
+        function updateMarker(pan=true) {
+            latlng = L.latLng([
+                document.getElementById("location_lat").value,
+                document.getElementById("location_long").value,
+            ]);
+
+            marker.setLatLng(latlng);
+
+            if (pan) {
+                map.panTo(latlng, {
+                    animate: true,
+
+                });
+            }
+
+        }
+
+        function onMapClick(e) {
+            document.getElementById("location_lat").value = e.latlng.lat.toFixed(4)
+            document.getElementById("location_long").value = e.latlng.lng.toFixed(4)
+
+            updateMarker(pan=false)
+        }
+
+        map.on('click', onMapClick);
+        document.getElementById("location_lat").onchange = _ => {updateMarker()}
+        document.getElementById("location_long").onchange = _ => {updateMarker()}
+
+    </script>
 {% endblock %}

@@ -1,6 +1,9 @@
+import datetime
 import json
 import logging
+import os
 import sqlite3
+import time
 
 import click
 from flask import current_app, g, Flask
@@ -60,7 +63,7 @@ def add_new_alert(alert: Alert):
             db.commit()
             log.debug("Committed!")
         except db.IntegrityError as e:
-            log.debug("Failed to add due to an IntegrityError, attempting to update...")
+            # log.debug("Failed to add due to an IntegrityError, attempting to update...")
             db.execute("UPDATE alerts SET updated = ?, expiry = ?, data = ? WHERE publisher_id = ?",
                        (alert.updated, alert.expiry, json.dumps(alert.__dict__), alert.publisher_id))
             db.commit()
@@ -99,6 +102,41 @@ def get_active_alerts(type: str = None, output_type: str = "dict"):
         log.debug("Returning! %s", to_return)
 
         return to_return
+
+
+def get_config(key, fallback=None):
+    with current_app.app_context():
+        db = get_db()
+        log.debug("Getting %s...", key)
+        result = db.execute("SELECT * FROM config WHERE id = ? LIMIT 1", [key]).fetchone()
+
+        try:
+            log.debug("%s's value is %s", key, result['value'])
+            return result['value']
+        except Exception as e:
+            log.critical(e)
+            if fallback is None:
+                log.debug("Falling back to %s", os.environ.get(key, fallback))
+                return os.environ.get(key, fallback)
+            else:
+                log.debug("Falling back to %s", fallback)
+                return fallback
+
+
+def set_config(key, value):
+    with current_app.app_context():
+        db = get_db()
+        try:
+            log.debug("Setting config value %s to %s", key, value)
+            db.execute(
+                "INSERT INTO config (id, value)"
+                "                    VALUES (?, ?)",
+                [key, value])
+            db.commit()
+        except db.IntegrityError as e:
+            log.debug("Failed to add due to an IntegrityError, attempting to update...")
+            db.execute("UPDATE config SET value = ?, updated = ? WHERE id = ?", [value, datetime.datetime.now(), key])
+            db.commit()
 
 
 @click.command('reset-db')
