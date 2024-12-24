@@ -1,9 +1,7 @@
 {% macro render_std_field(field) %}
     <div class="mb-3 row">
-        <div class="col">
-            {{ field.label(class_="col-form-label") }}
-        </div>
-        <div class="col">
+        {{ field.label(class_="col col-form-label") }}
+        <div class="col-fluid">
             {{ field(class_="form-control", **kwargs)|safe }}
         </div>
     </div>
@@ -25,4 +23,18 @@
         {{ field(class_="form-check-input", **kwargs)|safe }}
         {{ field.label(class_="form-check-label") }}
     </div>
+{% endmacro %}
+
+{% macro render_flashes() %}
+    {% with messages = get_flashed_messages() %}
+        {% if messages %}
+            <div class="container">
+                <ul class="flashes list-group">
+                    {% for message in messages %}
+                        <li class="list-group-item">{{ message }}</li>
+                    {% endfor %}
+                </ul>
+            </div>
+        {% endif %}
+    {% endwith %}
 {% endmacro %}

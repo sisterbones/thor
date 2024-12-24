@@ -45,7 +45,7 @@ def create_app(use_mqtt=False):
         app.config['DEBUG'] = True
         app.config['TEMPLATES_AUTO_RELOAD'] = True
 
-    app.config['SECRET_KEY'] = environ.get('SECRET_KEY', token_hex(32))
+    app.secret_key = environ.get('SECRET_KEY', token_hex(32))
 
     # Database URI
     app.config["DATABASE"] = environ.get('DATABASE', ":memory:")
@@ -69,11 +69,6 @@ def create_app(use_mqtt=False):
     db.init_app(app)
     assets.init_app(app)
     socketio.init_app(app)
-
-    # Configure GPS location
-    with app.app_context():
-        app.config['HOME_LAT'] = db.get_config('HOME_LAT', environ.get('HOME_LAT', 0.0))
-        app.config['HOME_LONG'] = db.get_config("HOME_LONG", environ.get('HOME_LONG', 0.0))
 
     scss = Bundle('styles/style.scss', filters="scss", output="styles/style.css")
     assets.register('scss_all', scss)
@@ -141,6 +136,23 @@ def create_app(use_mqtt=False):
             message = json.loads(message)
         except:
             pass
+
+        if db.get_config("LOG_LIGHTNING_EVENTS", False):
+            if not message.get("error"):
+                dbc = db.get_db()
+                dbc.execute("INSERT INTO lightning_events (distance, energy) VALUES (?, ?)", [message.get("distance", 0.0), message.get("energy", 0.0)])
+                dbc.commit()
+
+        if message.get("error") == "noisy":
+            alert = InfoAlert()
+            alert.alert_type = "info"
+            alert.icon = "warning"
+            alert.severity = 2
+            alert.publisher_id = "lightning_noisy"
+            alert.headline = "Lightning sensor is detecting too much noise"
+            db.add_new_alert(alert)
+            publish_alert(alert)
+            return
 
         alert = LightningAlert(distance_km=int(message.get("distance")))
 

@@ -1,3 +1,4 @@
+import logging
 import socket
 import ipaddress
 from os import environ
@@ -7,6 +8,8 @@ from flask import Blueprint, current_app, jsonify, request
 
 import thor.db as db
 from thor.db import get_db
+
+log = logging.getLogger(__name__)
 
 bp = Blueprint("api", __name__, url_prefix='/api')
 
@@ -43,7 +46,11 @@ def register_node(node_id):
     db.commit()
 
     # Get MQTT IP, not all nodes support hostnames.
-    MQTT_HOST_IP = socket.gethostbyname(environ.get('MQTT_BROKER'))
+    try:
+        MQTT_HOST_IP = socket.gethostbyname(environ.get('MQTT_BROKER'))
+    except socket.gaierror:
+        log.critical("Couldn't get IP of MQTT server. I will return None!!!")
+        MQTT_HOST_IP = None
     if environ.get('MQTT_BROKER') == "localhost":
         MQTT_HOST_IP = current_app.config['LOCAL_IP']
 

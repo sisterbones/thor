@@ -8,7 +8,7 @@ import time
 import click
 from flask import current_app, g, Flask
 
-from thor import Alert, LightningAlert, MetEireannWeatherWarning
+from thor import Alert, LightningAlert, MetEireannWeatherWarning, InfoAlert
 from thor.constants import *
 
 log = logging.getLogger(__name__)
@@ -87,6 +87,8 @@ def get_active_alerts(type: str = None, output_type: str = "dict"):
                 alert_obj = LightningAlert(data)
             elif data.get("source") & DATA_SOURCE_METEIREANN:
                 alert_obj = MetEireannWeatherWarning(data)
+            elif alert['type'] == 'info':
+                alert_obj = InfoAlert(data)
             else:
                 alert_obj = Alert(json.loads(alert['data']))
 
@@ -135,7 +137,7 @@ def set_config(key, value):
             db.commit()
         except db.IntegrityError as e:
             log.debug("Failed to add due to an IntegrityError, attempting to update...")
-            db.execute("UPDATE config SET value = ?, updated = ? WHERE id = ?", [value, datetime.datetime.now(), key])
+            db.execute("UPDATE config SET value = ?, updated = ? WHERE id = ?", [value, time.time(), key])
             db.commit()
 
 

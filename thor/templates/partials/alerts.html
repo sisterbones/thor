@@ -52,25 +52,25 @@
                 li.classList.add("list-group-item-danger");
         }
 
-        if (alert.status = "Info") {
+        if (alert.status === "Info") {
             const rowA = document.createElement("div");
-            rowA.className = "row row-flex justify-content-start";
+            rowA.className = "justify-content-start";
             if (alert.icon) {
-                const iconDiv = document.createElement("div");
-                iconDiv.className = "col-fluid flex-shrink-0";
+                const iconDiv = document.createElement("span");
                 iconDiv.innerHTML = `<span class='fa-solid fa-${alert.icon}'></span>`;
                 rowA.appendChild(iconDiv);
             }
-            const texts = document.createElement("div");
-            texts.className = "col-fluid flex-grow-1 texts";
+            li.appendChild(rowA);
+            const texts = document.createElement("span");
+            texts.className = "texts";
             if (alert.headline) {
-                const headline = document.createElement("h4");
-                headline.className = "margin-0";
+                const headline = document.createElement("span");
                 // if (alert.source & 1<<5) headline.innerText = alert.source_headline;
-                headline.innerText = alert.headline;
+                headline.innerText = " " + alert.headline;
                 texts.appendChild(headline);
             }
-            return;
+            rowA.appendChild(texts);
+            return li;
         }
 
         const rowA = document.createElement("div");
@@ -128,12 +128,22 @@
     }
 
     socket.on('alerts', (msg) => {
+        console.log(msg)
+
         if (msg.refresh) {
             alerts = msg.alerts;
         } else {
-            let new_alert = alerts.findIndex(p => p.publisher_id === msg.publisher_id);
-            alerts[new_alert] = msg;
+            console.log(alerts.findIndex(p => p.publisher_id === msg.publisher_id));
+            if (alerts.findIndex(p => p.publisher_id === msg.publisher_id) >= 0) {
+                let new_alert = alerts.findIndex(p => p.publisher_id === msg.publisher_id);
+                alerts[new_alert] = msg;
+            } else {
+                alerts.push(msg);
+            }
         }
+
+        console.log(alerts);
+
 
         let listItems = [];
 
