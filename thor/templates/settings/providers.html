@@ -1,0 +1,93 @@
+{% extends 'base.html' %}
+{% from '_form_helper.html' import render_std_field, render_number_field, render_checkbox, render_flashes %}
+
+{% block title %}Provider Settings{% endblock %}
+
+{% block content %}
+    <div class="row">
+        <h1 class="col"><span class="fa-solid fa-broadcast-tower"></span> Provider Settings</h1>
+    </div>
+    <div class="row">
+        <p class="col">These settings allow you to use data from external sources such as the Internet to supplement the
+            data from your nodes.</p>
+    </div>
+    <div class="row">
+        {{ render_flashes() }}
+    </div>
+
+    <!-- Weather -->
+    <div class="row">
+        <h2 class="col">Weather providers</h2>
+    </div>
+    <div class="row">
+        <p class="col">Weather providers provide weather and weather forecast data.</p>
+    </div>
+    <div class="row mb-3">
+        <div class="col">
+            <div class="card">
+                <div class="card-header">
+                    <span class="fa-solid fa-cloud"></span> Norwegian Meteorological Institute Locationforecast<span
+                        class="float-right"><span
+                        class="fa-solid fa-globe"></span> Worldwide</span></div>
+                <div class="card-body">
+                    <div class="alert alert-info" role="alert">
+                        <span class="fa-solid fa-info-circle"></span> This provider uses the location provided in the <a
+                            href="{{ url_for('settings.location') }}">Location Settings</a>
+                    </div>
+                    <form action="/settings/providers/metno" method=post>
+                        <p class="card-text">THOR can use data from the Norwegian Meteorological Institute's <a
+                                href="https://api.met.no/weatherapi/locationforecast/2.0/documentation">Locationforecast
+                            API</a>, which is provided free of charge under the <a
+                                href="http://creativecommons.org/licenses/by/4.0/">Creative
+                            Commons 4.0 BY International</a> license.</p>
+                        <div class="mb-3">
+                            {{ render_checkbox(met_form.metenable) }}
+                        </div>
+                        {{ met_form.metnosubmit(class_="btn btn-primary") }}
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Alerts -->
+    <h2>Alert providers</h2>
+    <p>Alert providers add extra alert types.</p>
+    <div class="row mb-3">
+        <div class="col">
+            <div class="card">
+                <div class="card-header">
+                    <i class="fa-solid fa-warning"></i> Met Éireann Weather Warnings
+                    <div class="float-right">
+                        🇮🇪 Ireland
+                    </div>
+                </div>
+                <div class="card-body">
+                    <form action="/settings/providers/metieww" method="post">
+                        <p class="card-text">Met Éireann's <a href="https://www.met.ie/Open_Data/json/">Weather Warning
+                            Data</a> is provided under the
+                            <a href="https://www.met.ie/cms/assets/uploads/2018/05/Met-%C3%89ireann-Open-Data-Custom-Licence_Final.odt">Met
+                                Éireann Custom Open Data License</a></p>
+
+                        <div class="mb-3">
+                            {{ render_checkbox(metie_form.mewwenable) }}
+                        </div>
+
+                        <div class="mb-3">
+                            {{ metie_form.county.label }}
+                            {{ metie_form.county(class_="form-select") }}
+                        </div>
+
+                        {{ metie_form.mewwsubmit(class_="btn btn-primary") }}
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+
+
+    <!-- Advanced -->
+
+
+
+{% endblock %}

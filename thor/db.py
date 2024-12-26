@@ -8,7 +8,7 @@ import time
 import click
 from flask import current_app, g, Flask
 
-from thor import Alert, LightningAlert, MetEireannWeatherWarning, InfoAlert
+from thor.alert import Alert, LightningAlert, MetEireannWeatherWarning, InfoAlert
 from thor.constants import *
 
 log = logging.getLogger(__name__)

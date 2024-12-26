@@ -20,7 +20,8 @@ cd $TMPDIR
 
 # Install prerequisites (Python, Python VENV, git, an MQTT broker [Might wright my own; Using mosquitto for now] and everything needed to pull the project from github)
 apt-get update
-apt-get install python3 python3-venv python3-rich mosquitto mosquitto-clients ruby-sass git -y
+apt-get install python3 python3-venv python3-rich mosquitto mosquitto-clients npm git -y
+npm install -g sass scss
 
 # Generate identifiers
 SECRET_KEY="$(head /dev/urandom | tr -dc A-Za-z0-9 | head -c 13 ; echo '')"

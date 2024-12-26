@@ -217,3 +217,6 @@ class MetEireannWeatherWarningProvider(CachingWeatherProvider):
         }
 
         return response
+
+def fetch_weather() -> dict:
+    return {}

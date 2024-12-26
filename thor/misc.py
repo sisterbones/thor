@@ -1,3 +1,4 @@
+import json
 import socket
 
 def get_ip():
@@ -16,6 +17,26 @@ def get_ip():
 
 import socket
 
+def truthy(value):
+    """
+    Function to check if a value is truthy or falsy
+
+    :param value: Input to check
+    :return bool:
+    """
+    if value:
+        if value.isdigit():
+            if not float(value):
+                return False
+        if value == "False":
+            return False
+        try:
+            if not json.loads(value):
+                # Account for empty objects
+                return False
+        except json.JSONDecodeError:
+            return True
+    return False
 
 def has_internet_connection():
     try:

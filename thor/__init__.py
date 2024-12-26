@@ -14,9 +14,9 @@ from flask_socketio import SocketIO
 from rich.logging import RichHandler
 
 import thor.misc as misc
+import thor.providers as providers
 from thor.alert import *
 from thor.constants import *
-from thor.providers import MetNoWeatherProvider, MetEireannWeatherWarningProvider
 
 # Set up logging
 FORMAT = "%(message)s"
@@ -84,7 +84,7 @@ def create_app(use_mqtt=False):
     def publish_weather(methods=3):
         log.info('Serving weather')
 
-        weather = MetNoWeatherProvider(lat=app.config.get('HOME_LAT', 0), long=app.config.get('HOME_LONG', 0)).fetch()
+        weather = providers.fetch_weather()
 
         if methods & DATA_OUTPUT_MQTT:
             socketio.emit('weather', weather, namespace="/mqtt")
