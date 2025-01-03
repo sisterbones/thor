@@ -1,15 +1,25 @@
 import datetime
 import json
+import logging
 import time
 
 import requests
+import requests.exceptions
 from flask import current_app
+from rich.logging import RichHandler
 
 from thor.constants import *
-from thor.alert import MetEireannWeatherWarning, InfoAlert
-from thor.db import add_new_alert
+from thor.alert import MetEireannWeatherWarning, InfoAlert, add_new_alert
+from thor.db import get_config, set_config
 from thor.misc import has_internet_connection
 
+# Set up logging
+FORMAT = "%(message)s"
+logging.basicConfig(
+    level="DEBUG", format=FORMAT, datefmt="[%X]", handlers=[RichHandler()]
+)
+
+log = logging.getLogger("rich")
 
 class WeatherProvider:
     def fetch(self) -> dict:
@@ -86,10 +96,7 @@ def met_no_symbol_to_font_awesome(icon):
         "lightrain": ("cloud-rain", "Light rain"),
     }
 
-    print(icon)
-
     if icon in mapping:
-        print(mapping.get(icon))
         return mapping.get(icon, ("circle-question", "Unknown"))
 
     return "circle-question", "Unknown"
@@ -107,9 +114,9 @@ class CachingWeatherProvider(WeatherProvider):
         if not has_internet_connection():
             return self.cached_response
         if time.time() <= self.last_fetched_time + self.seconds_to_live and self.cached_response:
-            print("Serving cache")
+            log.debug("Serving cache")
             return self.cached_response
-        try:    
+        try:
             data_request = requests.get(
                 self.base_url,
                 self.query,
@@ -119,7 +126,7 @@ class CachingWeatherProvider(WeatherProvider):
                 }
             )
         except (requests.exceptions.ConnectionError, requests.exceptions.ReadTimeout):
-            print("Couldnt connect.")
+            log.critical(f"Couldnt connect to {self.base_url}.")
             return self.cached_response
         self.cached_response = data_request
         self.last_fetched_time = time.time()
@@ -145,12 +152,13 @@ class MetNoWeatherProvider(CachingWeatherProvider):
             data = super().fetch()
             data = data.json()
         except (json.JSONDecodeError, TypeError):
-            return {"timestamp": time.time(), "error": "no_internet", "icon": "circle-exclamation", "source": {"label": "Norwegian Meteorological Institute", "href": "https://met.no"}, "weather":  {
-                "temperature": 0.0,
-                "conditions": "unknown",
-                "headline": "Unavailable"
+            return {"timestamp": time.time(), "error": "no_internet", "icon": "circle-exclamation",
+                    "source": {"label": "Norwegian Meteorological Institute", "href": "https://met.no"}, "weather": {
+                    "temperature": 0.0,
+                    "conditions": "unknown",
+                    "headline": "Unavailable"
                 }
-            }
+                    }
 
         icon = met_no_symbol_to_font_awesome(
             data['properties']['timeseries'][0]['data']['next_12_hours']['summary']['symbol_code'])
@@ -182,15 +190,21 @@ class MetEireannWeatherWarningProvider(CachingWeatherProvider):
     def fetch(self) -> dict:
         cache = super().fetch()
 
+        # def callback(updated=True):
+        #     if updated:
+        #         return
+        #     else:
+
+
         try:
             data = super().fetch().json()
         except (TypeError, AttributeError):
             alert = InfoAlert(publisher_id="metie_ww_error",
-                            headline = "Can't get weather warnings from Met Éireann.")
+                              headline="Can't get weather warnings from Met Éireann.")
             add_new_alert(alert)
             return {"timestamp": time.time(), "error": "no_internet", "warnings": [
-                    alert
-                ]}
+                alert
+            ]}
 
         warnings = []
 
@@ -217,6 +231,3 @@ class MetEireannWeatherWarningProvider(CachingWeatherProvider):
         }
 
         return response
-
-def fetch_weather() -> dict:
-    return {}

@@ -6,6 +6,7 @@ from time import time
 
 from flask import Blueprint, current_app, jsonify, request
 
+import thor.alert
 import thor.db as db
 from thor.db import get_db
 
@@ -69,7 +70,7 @@ def register_node(node_id):
 
 @bp.route('/alerts/active')
 def get_active_alerts():
-    return jsonify(db.get_active_alerts())
+    return jsonify(thor.alert.get_active_alerts())
 
 @bp.route('/config/<config_id>', methods=['GET', 'POST', 'PATCH'])
 def config(config_id):

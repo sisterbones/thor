@@ -1,5 +1,8 @@
 import json
+import logging
 import socket
+
+log = logging.getLogger(__name__)
 
 def get_ip():
     # https://stackoverflow.com/a/28950776
@@ -24,6 +27,7 @@ def truthy(value):
     :param value: Input to check
     :return bool:
     """
+    log.debug("Checking if `%s` is truthy", value)
     if value:
         if value.isdigit():
             if not float(value):

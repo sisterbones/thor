@@ -1,9 +1,24 @@
+import json
 from datetime import datetime
 import time
+import logging
 from uuid import uuid4
 
-from thor.constants import *
+import requests
+from flask import current_app
+from rich.logging import RichHandler
 
+from thor.constants import *
+import thor.db as db
+from thor.db import log, get_db
+from thor.imports import socketio
+
+FORMAT = "%(message)s"
+logging.basicConfig(
+    level="DEBUG", format=FORMAT, datefmt="[%X]", handlers=[RichHandler()]
+)
+
+log = logging.getLogger("rich")
 
 class Alert:
     def __init__(self, *initial_data, **kwargs):
@@ -81,4 +96,104 @@ class LightningAlert(Alert):
         self.expiry = self.timestamp + (60 * 10)
         self.icon = "bolt"
         self.headline = "Lightning detected!"
-        self.subtitle = f"Distance {self.distance_km}km"
+        self.subtitle = f"About {self.distance_km}km away."
+
+def fetch_weather() -> dict:
+    return current_app.config['METNO_LOCATIONFORECAST'].fetch()
+
+def fetch_alerts() -> None:
+    """Updates alerts from external providers."""
+    try:
+        current_app.config['METIE_WEATHERWARNING'].fetch()
+    except requests.exceptions.JSONDecodeError:
+        add_new_alert(InfoAlert(headline="Failed to fetch data from Met Éireann. (WW_FAIL)", publisher_id="metie_ww_fail"))
+
+def publish_current_alerts(methods=3):
+    log.info('Serving current alerts')
+
+    fetch_alerts()
+
+    current_alerts = get_active_alerts()
+    payload = {
+        "alerts": current_alerts,
+        "timestamp": time.time(),
+        "refresh": True
+    }
+
+    if methods & DATA_OUTPUT_MQTT:
+        socketio.emit('alerts', payload, namespace="/mqtt")
+    if methods & DATA_OUTPUT_SOCKETIO:
+        socketio.emit('alerts', payload)
+
+def publish_alert(alert: Alert, methods=3):
+    log.info(f"Publishing {alert.alert_type} alert...")
+    if methods & DATA_OUTPUT_MQTT:
+        socketio.emit(f'alerts', alert.__dict__, namespace="/mqtt")  # For nodes looking for all alerts
+        socketio.emit(f'alerts/{alert.alert_type}', alert.__dict__,
+                      namespace="/mqtt")  # For nodes only looking at specific alerts
+    if methods & DATA_OUTPUT_SOCKETIO:
+        socketio.emit(f'alerts', alert.__dict__)  # For nodes looking for all alerts
+        socketio.emit(f'alerts/{alert.alert_type}', alert.__dict__)  # For nodes only looking at specific alerts
+
+
+def add_new_alert(alert: Alert, callback = None):
+    """Adds an alert to the database. `callback` is a function that takes a boolean as its first parameter."""
+    log.debug("Adding %s to database", alert.__dict__)
+    updated = False
+    with current_app.app_context():
+        db = get_db()
+        try:
+            db.execute(
+                "INSERT INTO alerts (publisher_id, timestamp, updated, expiry, type, data)"
+                "                    VALUES (?, ?, ?, ?, ?, ?)",
+                (alert.publisher_id, alert.timestamp, alert.updated, alert.expiry, alert.alert_type,
+                 json.dumps(alert.__dict__)),
+            )
+            db.commit()
+            log.debug("Committed!")
+        except db.IntegrityError as e:
+            # log.debug("Failed to add due to an IntegrityError, attempting to update...")
+            db.execute("UPDATE alerts SET updated = ?, expiry = ?, data = ? WHERE publisher_id = ?",
+                       (alert.updated, alert.expiry, json.dumps(alert.__dict__), alert.publisher_id))
+            updated = True
+            db.commit()
+
+        if callback:
+            callback(updated)
+
+
+def get_active_alerts(type: str = None, output_type: str = "dict"):
+    log.info("Getting active alerts..")
+    with current_app.app_context():
+        db = get_db()
+        if type is None:
+            alerts = db.execute("SELECT * FROM alerts WHERE expiry >= unixepoch() ORDER BY timestamp", ).fetchall()
+        else:
+            alerts = db.execute("SELECT * FROM alerts WHERE expiry >= unixepoch() AND type = ? ORDER BY timestamp",
+                                [type]).fetchall()
+
+        to_return = []
+        for alert in alerts:
+            data = json.loads(alert['data'])
+
+            if alert["type"] == "lightning":
+                alert_obj = LightningAlert(data)
+            elif data.get("source") & DATA_SOURCE_METEIREANN:
+                alert_obj = MetEireannWeatherWarning(data)
+            elif alert['type'] == 'info':
+                alert_obj = InfoAlert(data)
+            else:
+                alert_obj = Alert(json.loads(alert['data']))
+
+            alert_obj.updated = alert['updated']
+            alert_obj.expiry = alert['expiry']
+            alert_obj.timestamp = alert['timestamp']
+
+            if output_type.casefold() == "alert":
+                to_return.append(alert_obj)
+            else:
+                to_return.append(alert_obj.__dict__)
+
+        log.debug("Returning! %s", to_return)
+
+        return to_return

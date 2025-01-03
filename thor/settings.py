@@ -85,8 +85,8 @@ def providers_metieww():
     if form.validate():
         log.debug("met_ie form validated.")
 
-        db.set_config("METIE_WW_ENABLE", truthy(form.mewwenable.data))
-        if truthy(form.mewwenable.data):
+        db.set_config("METIE_WW_ENABLE", form.mewwenable.data)
+        if form.mewwenable.data:
             db.set_config("METIE_WW_COUNTY", form.county.data)
         flash("Your changes for Met Éireann have been saved.")
     else:
@@ -100,6 +100,7 @@ def providers_metno():
     form = MetNoConfigForm()
 
     if form.validate():
+        log.debug("Enable is set to %s", form.metenable.data)
         db.set_config("MET_NO_ENABLE", truthy(form.metenable.data))
         flash("Your changes for met.no have been saved.")
     else:
@@ -122,6 +123,7 @@ def location():
     if request.method == "POST" and form.validate():
         loc['location_lat'] = form.location_lat.data
         loc['location_long'] = form.location_long.data
+
         db.set_config("HOME_LAT", form.location_lat.data)
         db.set_config("HOME_LONG", form.location_long.data)
 

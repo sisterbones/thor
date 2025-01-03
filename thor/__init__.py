@@ -7,16 +7,18 @@ from secrets import token_hex
 import werkzeug.exceptions
 from dotenv import load_dotenv
 
+import thor.alert
+
 load_dotenv()
 from flask import Flask, render_template
 from flask_assets import Environment, Bundle
-from flask_socketio import SocketIO
 from rich.logging import RichHandler
 
 import thor.misc as misc
 import thor.providers as providers
 from thor.alert import *
 from thor.constants import *
+from thor.imports import *
 
 # Set up logging
 FORMAT = "%(message)s"
@@ -26,19 +28,14 @@ logging.basicConfig(
 
 log = logging.getLogger("rich")
 
-assets = Environment()
-if environ.get('REDIS_URL'):
-    socketio = SocketIO(message_queue=environ.get('REDIS_URL'))
-else:
-    socketio = SocketIO()
-
 def get_time(strftime="%H:%M"):
     # Returns the current time as a string in the format "HH:MM"
     return datetime.now().strftime(strftime)
 
+
 def create_app(use_mqtt=False):
     app = Flask(__name__,
-                static_url_path = '')
+                static_url_path='')
 
     # Template configs
     if environ.get('FLASK_ENV') == 'development':
@@ -70,6 +67,12 @@ def create_app(use_mqtt=False):
     assets.init_app(app)
     socketio.init_app(app)
 
+    with app.app_context():
+        # Providers
+        app.config['METNO_LOCATIONFORECAST'] = providers.MetNoWeatherProvider(db.get_config("HOME_LAT", 0.0),
+                                                                              db.get_config("HOME_LONG", 0.0))
+        app.config['METIE_WEATHERWARNING'] = providers.MetEireannWeatherWarningProvider(db.get_config('METIE_WW_COUNTY', 'Ireland'))
+
     scss = Bundle('styles/style.scss', filters="scss", output="styles/style.css")
     assets.register('scss_all', scss)
 
@@ -84,36 +87,12 @@ def create_app(use_mqtt=False):
     def publish_weather(methods=3):
         log.info('Serving weather')
 
-        weather = providers.fetch_weather()
+        weather = fetch_weather()
 
         if methods & DATA_OUTPUT_MQTT:
             socketio.emit('weather', weather, namespace="/mqtt")
         if methods & DATA_OUTPUT_SOCKETIO:
             socketio.emit('weather', weather)
-
-    def publish_current_alerts(methods=3):
-        log.info('Serving current alerts')
-
-        current_alerts = db.get_active_alerts()
-        payload = {
-            "alerts": current_alerts,
-            "timestamp": time.time(),
-            "refresh": True
-        }
-
-        if methods & DATA_OUTPUT_MQTT:
-            socketio.emit('alerts', payload, namespace="/mqtt")
-        if methods & DATA_OUTPUT_SOCKETIO:
-            socketio.emit('alerts', payload)
-
-    def publish_alert(alert: Alert, methods=3):
-        log.info(f"Publishing {alert.alert_type} alert...")
-        if methods & DATA_OUTPUT_MQTT:
-            socketio.emit(f'alerts', alert.__dict__, namespace="/mqtt")  # For nodes looking for all alerts
-            socketio.emit(f'alerts/{alert.alert_type}', alert.__dict__, namespace="/mqtt")  # For nodes only looking at specific alerts
-        if methods & DATA_OUTPUT_SOCKETIO:
-            socketio.emit(f'alerts', alert.__dict__)  # For nodes looking for all alerts
-            socketio.emit(f'alerts/{alert.alert_type}', alert.__dict__)  # For nodes only looking at specific alerts
 
     def ask_common(message, output=3):
         if 'weather' in message:
@@ -140,7 +119,8 @@ def create_app(use_mqtt=False):
         if db.get_config("LOG_LIGHTNING_EVENTS", False):
             if not message.get("error"):
                 dbc = db.get_db()
-                dbc.execute("INSERT INTO lightning_events (distance, energy) VALUES (?, ?)", [message.get("distance", 0.0), message.get("energy", 0.0)])
+                dbc.execute("INSERT INTO lightning_events (distance, energy) VALUES (?, ?)",
+                            [message.get("distance", 0.0), message.get("energy", 0.0)])
                 dbc.commit()
 
         if message.get("error") == "noisy":
@@ -150,16 +130,16 @@ def create_app(use_mqtt=False):
             alert.severity = 2
             alert.publisher_id = "lightning_noisy"
             alert.headline = "Lightning sensor is detecting too much noise"
-            db.add_new_alert(alert)
+            thor.alert.add_new_alert(alert)
             publish_alert(alert)
             return
 
         alert = LightningAlert(distance_km=int(message.get("distance")))
 
         # If there was lighting detected in the last ten minutes, bundle it in with that alert.
-        alerts = db.get_active_alerts("lightning", output_type="alert")
+        alerts = thor.alert.get_active_alerts("lightning", output_type="alert")
         if not alerts:
-            db.add_new_alert(alert)
+            thor.alert.add_new_alert(alert)
             publish_alert(alert)
 
         # Check if there's any lighting strikes that are closer
@@ -172,7 +152,7 @@ def create_app(use_mqtt=False):
                 alerts[0].expiry = time.time() + (60 * 10)
                 alert = alerts[0]
 
-            db.add_new_alert(alert)
+            thor.alert.add_new_alert(alert)
             publish_alert(alert)
 
     import thor.testing
