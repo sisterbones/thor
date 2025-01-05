@@ -1,14 +1,18 @@
 import logging
+import time
 
 from flask import Blueprint, jsonify, current_app, render_template, request, flash, redirect, url_for
 from wtforms import Form, StringField, FloatField, validators, BooleanField, SubmitField, SelectField
 
 from thor import db
 from thor.misc import truthy
+from thor.alert import get_active_alerts, add_new_alert, remove_alert
+from thor.constants import *
 
 bp = Blueprint("settings", __name__, url_prefix="/settings")
 
 log = logging.getLogger(__name__)
+
 
 @bp.route("/")
 def index():
@@ -28,7 +32,7 @@ class MetNoConfigForm(Form):
 
 class MetEireannWWConfigForm(Form):
     mewwenable = BooleanField('Enable')
-    mewwsubmit = SubmitField("Save")
+    submit = SubmitField("Save")
     choices = [
         ("IRELAND", "Ireland"),
         ("EI01", "Carlow"),
@@ -74,20 +78,36 @@ def providers():
 
     return render_template("settings/providers.html", met_form=met_form, metie_form=metie_form)
 
+
 # TODO: Investigate why these don't get saved to the database.
 @bp.route("/providers/metieww", methods=["POST"])
 def providers_metieww():
-    form = MetEireannWWConfigForm()
+    form = MetEireannWWConfigForm(request.form)
 
-    log.debug("metie_form.mewwenable: %s", form.mewwenable.data)
-    log.debug("metie_form.county: %s", form.county.data)
+    log.debug("metie_form.mewwenable: %s (%s)", request.form.get('mewwenable'), form.mewwenable.data)
+    log.debug("metie_form.county: %s (%s)", request.form.get('county'), form.county.data)
+
+    log.debug(form.form_errors)
 
     if form.validate():
         log.debug("met_ie form validated.")
 
         db.set_config("METIE_WW_ENABLE", form.mewwenable.data)
-        if form.mewwenable.data:
-            db.set_config("METIE_WW_COUNTY", form.county.data)
+
+        # Reset weather warnings
+        log.info("Resetting weather warnings...")
+        with current_app.app_context():
+            current_app.config['METIE_WEATHERWARNING'].region = form.county.data
+            current_app.config[
+                'METIE_WEATHERWARNING'].baseurl = f'https://www.met.ie/Open_Data/json/warning_{current_app.config['METIE_WEATHERWARNING'].region}.json'
+            current_app.config['METIE_WEATHERWARNING'].last_fetched_time = 0
+        log.debug((DATA_SOURCE_INET | DATA_SOURCE_METEIREANN))
+        for alert in get_active_alerts(output_type="alert", source=(DATA_SOURCE_INET | DATA_SOURCE_METEIREANN)):
+            remove_alert(alert=alert)
+
+        log.debug("Last updated time was %s", current_app.config['METIE_WEATHERWARNING'].last_fetched_time)
+
+        db.set_config("METIE_WW_COUNTY", form.county.data)
         flash("Your changes for Met Éireann have been saved.")
     else:
         flash(form.errors)
@@ -97,7 +117,7 @@ def providers_metieww():
 
 @bp.route("/providers/metno", methods=["POST"])
 def providers_metno():
-    form = MetNoConfigForm()
+    form = MetNoConfigForm(request.form)
 
     if form.validate():
         log.debug("Enable is set to %s", form.metenable.data)

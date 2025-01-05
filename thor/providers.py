@@ -9,17 +9,12 @@ from flask import current_app
 from rich.logging import RichHandler
 
 from thor.constants import *
-from thor.alert import MetEireannWeatherWarning, InfoAlert, add_new_alert
+from thor.alert import MetEireannWeatherWarning, InfoAlert, add_new_alert, Alert, publish_alert, remove_alert
 from thor.db import get_config, set_config
 from thor.misc import has_internet_connection
 
-# Set up logging
-FORMAT = "%(message)s"
-logging.basicConfig(
-    level="DEBUG", format=FORMAT, datefmt="[%X]", handlers=[RichHandler()]
-)
-
 log = logging.getLogger("rich")
+
 
 class WeatherProvider:
     def fetch(self) -> dict:
@@ -156,7 +151,7 @@ class MetNoWeatherProvider(CachingWeatherProvider):
                     "source": {"label": "Norwegian Meteorological Institute", "href": "https://met.no"}, "weather": {
                     "temperature": 0.0,
                     "conditions": "unknown",
-                    "headline": "Unavailable"
+                    "headline": "No Internet"
                 }
                     }
 
@@ -190,21 +185,26 @@ class MetEireannWeatherWarningProvider(CachingWeatherProvider):
     def fetch(self) -> dict:
         cache = super().fetch()
 
-        # def callback(updated=True):
-        #     if updated:
-        #         return
-        #     else:
-
+        def callback(updated=True, alert=Alert()):
+            log.debug("%s: updated=%s", alert.headline, updated)
+            if updated:
+                return
+            else:
+                publish_alert(alert)
 
         try:
             data = super().fetch().json()
-        except (TypeError, AttributeError):
-            alert = InfoAlert(publisher_id="metie_ww_error",
-                              headline="Can't get weather warnings from Met Éireann.")
-            add_new_alert(alert)
+        except:
+            alert = InfoAlert(publisher_id="metie_ww_fail",
+                              headline="Can't get weather warnings from Met Éireann. (WW_FAIL)",
+                              icon="globe")
+            add_new_alert(alert, callback)
+
             return {"timestamp": time.time(), "error": "no_internet", "warnings": [
                 alert
             ]}
+
+        remove_alert(publisher_id="metie_ww_fail")
 
         warnings = []
 

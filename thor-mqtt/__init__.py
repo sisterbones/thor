@@ -47,9 +47,9 @@ def message(topic, data):
         data = json.dumps(data)
     mqttc.publish(f'thor/{topic}', data)
 
-# @sio.on('connect')
-# def sio_on_connect(data=""):
-#     log.info("Connected to THOR.")
+@sio.on('connect')
+def sio_on_connect(data=""):
+    log.info("Connected to THOR.")
 
 mqttc.connect(environ.get('MQTT_BROKER', "localhost"), environ.get('MQTT_BROKER_PORT', 1883))
 mqttc.username_pw_set(environ.get('MQTT_USERNAME', 'thor'), environ.get('MQTT_PASSWORD', ''))

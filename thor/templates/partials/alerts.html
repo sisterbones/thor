@@ -45,10 +45,10 @@
         }
 
         switch (alert.severity) {
-            case 2:
+            case 1:
                 li.classList.add("list-group-item-warning");
                 break;
-            case 3:
+            case 2 || 3:
                 li.classList.add("list-group-item-danger");
         }
 
@@ -141,6 +141,19 @@
                 alerts.push(msg);
             }
         }
+
+        function temp(x) {
+            switch (x) {
+                case 'Info':
+                    return 3;
+                case 'Advisory':
+                    return 1;
+                default:
+                    return 2;
+            }
+        }
+
+        alerts.sort((a, b) => temp(b.status) - temp(a.status) || b.severity - a.severity || b.updated - a.updated)
 
         console.log(alerts);
 

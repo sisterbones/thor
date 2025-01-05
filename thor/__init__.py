@@ -126,8 +126,8 @@ def create_app(use_mqtt=False):
         if message.get("error") == "noisy":
             alert = InfoAlert()
             alert.alert_type = "info"
-            alert.icon = "warning"
-            alert.severity = 2
+            alert.icon = "triangle-exclamation"
+            alert.severity = 1
             alert.publisher_id = "lightning_noisy"
             alert.headline = "Lightning sensor is detecting too much noise"
             thor.alert.add_new_alert(alert)
@@ -135,9 +135,10 @@ def create_app(use_mqtt=False):
             return
 
         alert = LightningAlert(distance_km=int(message.get("distance")))
+        alert.update_severity()
 
         # If there was lighting detected in the last ten minutes, bundle it in with that alert.
-        alerts = thor.alert.get_active_alerts("lightning", output_type="alert")
+        alerts = get_active_alerts("lightning", output_type="alert")
         if not alerts:
             thor.alert.add_new_alert(alert)
             publish_alert(alert)

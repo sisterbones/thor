@@ -76,6 +76,7 @@ def set_config(key, value):
             log.debug("Failed to add due to an IntegrityError, attempting to update...")
             db.execute("UPDATE config SET value = ?, updated = ? WHERE id = ?", [value, time.time(), key])
             db.commit()
+            log.debug("Updated %s to %s", key, value)
 
 
 @click.command('reset-db')

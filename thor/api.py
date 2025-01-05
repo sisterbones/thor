@@ -46,25 +46,36 @@ def register_node(node_id):
         db.execute('INSERT INTO nodes (id, last_ip) VALUES (?, ?)', [node_id, request.remote_addr])
     db.commit()
 
-    # Get MQTT IP, not all nodes support hostnames.
     try:
-        MQTT_HOST_IP = socket.gethostbyname(environ.get('MQTT_BROKER'))
-    except socket.gaierror:
-        log.critical("Couldn't get IP of MQTT server. I will return None!!!")
-        MQTT_HOST_IP = None
-    if environ.get('MQTT_BROKER') == "localhost":
-        MQTT_HOST_IP = current_app.config['LOCAL_IP']
+        # Get MQTT IP, not all nodes support hostnames.
+        try:
+            MQTT_HOST_IP = socket.gethostbyname(environ.get('MQTT_BROKER'))
+        except socket.gaierror:
+            log.critical("Couldn't get IP of MQTT server. I will return None!!!")
+            MQTT_HOST_IP = None
+        if environ.get('MQTT_BROKER') == "localhost":
+            MQTT_HOST_IP = current_app.config['LOCAL_IP']
 
-    print(MQTT_HOST_IP)
+        print(MQTT_HOST_IP)
 
-    return jsonify({
-        'timestamp': time(),
-        'mqtt': {
+        mqtt = {
             'username': 'service',
             'password': environ.get('MQTT_SERVICE_PASSWORD'),
             'port': environ.get('MQTT_PORT', 1883),
             'host': MQTT_HOST_IP
-        },
+        }
+    except TypeError:
+        mqtt = {
+            'host': None,
+            'port': None,
+            'password': None,
+            'username': None
+        }
+
+
+    return jsonify({
+        'timestamp': time(),
+        'mqtt': mqtt,
         'wifi': None
     })
 
