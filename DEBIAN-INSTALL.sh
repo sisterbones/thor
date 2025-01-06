@@ -6,7 +6,7 @@ if [ "$EUID" -ne 0 ]
   exit
 fi
 
-DL_SERVER='http://192.168.1.1:8000'
+DL_SERVER='https://raw.githubusercontent.com/sisterbones/thor/refs/heads/master'
 TMPDIR="/tmp/thor"
 INSTALLDIR="/opt/thor"
 CONFIGDIR="/etc/thor"
