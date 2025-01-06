@@ -24,6 +24,14 @@ def get_db():
         if ':memory:' in current_app.config['DATABASE'].casefold():
             init_db()
 
+        # Check if database is initalised
+        tables = g.db.execute("SELECT name FROM sqlite_master").fetchall()
+        if len(tables) <= 0:
+            with current_app.open_resource('schema.sql') as f:
+                g.db.executescript(f.read().decode('utf8'))
+                g.db.commit()
+                log.debug("Initalised database.")
+
     log.debug("Database gotten!")
 
     return g.db
