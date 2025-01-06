@@ -100,8 +100,9 @@ echo 'Initialise database'
 cd $INSTALLDIR
 $INSTALLDIR/.venv/bin/flask --app thor reset-db
 
-chown $SERVICE_USER:$SERVICE_USER -R /etc/thor
-chown $SERVICE_USER:$SERVICE_USER -R /opt/thor
+chown $SERVICE_USER:$SERVICE_USER -R $CONFIGDIR
+chown $SERVICE_USER:$SERVICE_USER -R $INSTALLDIR
+chmod 660 -R $CONFIGDIR
 
 echo '  > Reload daemon and start service'
 systemctl daemon-reload
