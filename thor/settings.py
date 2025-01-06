@@ -99,7 +99,7 @@ def providers_metieww():
         with current_app.app_context():
             current_app.config['METIE_WEATHERWARNING'].region = form.county.data
             current_app.config[
-                'METIE_WEATHERWARNING'].baseurl = f'https://www.met.ie/Open_Data/json/warning_{current_app.config['METIE_WEATHERWARNING'].region}.json'
+                "METIE_WEATHERWARNING"].baseurl = f'https://www.met.ie/Open_Data/json/warning_{current_app.config["METIE_WEATHERWARNING"].region}.json'
             current_app.config['METIE_WEATHERWARNING'].last_fetched_time = 0
         log.debug((DATA_SOURCE_INET | DATA_SOURCE_METEIREANN))
         for alert in get_active_alerts(output_type="alert", source=(DATA_SOURCE_INET | DATA_SOURCE_METEIREANN)):
