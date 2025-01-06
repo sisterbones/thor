@@ -58,8 +58,11 @@ def has_internet_connection():
     try:
         # connect to the host -- tells us if the host is actually
         # reachable
+        log.debug('Checking for internet...')
         socket.create_connection(("1.1.1.1", 53))
+        log.debug('Has internet.')
         return True
     except OSError:
         pass
+    log.debug('No has internet.')
     return False

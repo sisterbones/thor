@@ -107,6 +107,8 @@ class CachingWeatherProvider(WeatherProvider):
 
     def fetch(self) -> dict:
         if not has_internet_connection():
+            alert = InfoAlert(publisher_id='noinet', headline="No internet connection.", icon="globe-cross")
+            add_new_alert(alert)
             return self.cached_response
         if time.time() <= self.last_fetched_time + self.seconds_to_live and self.cached_response:
             log.debug("Serving cache")
