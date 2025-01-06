@@ -47,8 +47,9 @@ def get_config(key, fallback=None):
     with current_app.app_context():
         db = get_db()
         log.debug("Getting %s...", key)
+        result = db.execute("SELECT * FROM config WHERE id = ? LIMIT 1", [key]).fetchone()
+
         try:
-            result = db.execute("SELECT * FROM config WHERE id = ? LIMIT 1", [key]).fetchone()
             log.debug("%s's value is %s", key, result['value'])
             return result['value']
         except Exception as e:
