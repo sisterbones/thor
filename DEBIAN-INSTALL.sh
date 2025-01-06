@@ -69,9 +69,9 @@ touch $CONFIGDIR/.env
 
 echo '- Downloading thor...'
 if [[ ! -d "$INSTALLDIR" ]]; then
-    sudo -u $SERVICE_USER git clone git@github.com:sisterbones/thor.git $INSTALLDIR
+    $SERVICE_USER git clone git@github.com:sisterbones/thor.git $INSTALLDIR
     cd $INSTALLDIR
-    sudo -u $SERVICE_USER git submodule update --init --recursive
+    $SERVICE_USER git submodule update --init --recursive
   else
     echo '  ! Git repo for thor already found. Updating repo...'
     {
