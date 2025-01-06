@@ -79,14 +79,18 @@ if [[ ! -d "$INSTALLDIR" ]]; then
       sudo -u $SERVICE_USER git pull --recurse-submodules
       cd ..
     }
-fi
+
 
 echo '  > Create a virtual environment'
-python3 -m venv $INSTALLDIR/.venv
-source $INSTALLDIR/.venv/bin/activate
+if [[ ! -d "$INSTALLDIR/.venv" ]]; then
+    python3 -m venv $INSTALLDIR/.venv
+    source $INSTALLDIR/.venv/bin/activate
+  else
+    echo '  ! Virtual environment already exists'
+fi
 
 echo '  > Download dependencies'
-pip install -r $INSTALLDIR/requirements.txt
+pip install -U -r $INSTALLDIR/requirements.txt
 
 echo '- Install systemd service'
 echo '  > Download thor hub service'
