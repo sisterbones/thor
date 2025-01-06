@@ -102,7 +102,9 @@ $INSTALLDIR/.venv/bin/flask --app thor reset-db
 
 chown $SERVICE_USER:$SERVICE_USER -R $CONFIGDIR
 chown $SERVICE_USER:$SERVICE_USER -R $INSTALLDIR
-chmod 660 -R $CONFIGDIR
+chmod 775 -R $CONFIGDIR
+chmod 771 -R $CONFIGDIR/.env*
+
 
 echo '  > Reload daemon and start service'
 systemctl daemon-reload
