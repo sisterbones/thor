@@ -20,7 +20,7 @@ cd $TMPDIR
 
 # Install prerequisites (Python, Python VENV, git, an MQTT broker [Might wright my own; Using mosquitto for now] and everything needed to pull the project from github)
 apt-get update
-apt-get install python3 python3-venv python3-rich mosquitto mosquitto-clients npm git -y
+apt-get install python3 python3-venv python3-rich mosquitto mosquitto-clients sudo npm git -y
 npm install -g sass scss
 
 # Generate identifiers
@@ -69,21 +69,15 @@ touch $CONFIGDIR/.env
 
 echo '- Downloading thor...'
 if [[ ! -d "$INSTALLDIR" ]]; then
-    sudo -u thor git clone git@github.com:sisterbones/thor.git $INSTALLDIR
+    sudo -u $SERVICE_USER git clone git@github.com:sisterbones/thor.git $INSTALLDIR
     cd $INSTALLDIR
-    sudo -u thor git submodule update --init --recursive
+    sudo -u $SERVICE_USER git submodule update --init --recursive
   else
     echo '  ! Git repo for thor already found. Updating repo...'
     {
       cd $INSTALLDIR
-      sudo -u thor git pull --recurse-submodules
+      sudo -u $SERVICE_USER git pull --recurse-submodules
       cd ..
-    } || {
-      echo '  ! Git failed that :(. Downloading it again...'
-      rm -rf $INSTALLDIR
-      sudo -u thor git clone git@github.com:sisterbones/thor.git $INSTALLDIR
-      cd $INSTALLDIR
-      sudo -u thor git submodule update --init --recursive
     }
 fi
 
@@ -102,12 +96,12 @@ wget -O /etc/systemd/system/thor-autodiscovery.service -nv $DL_SERVER/preconfigu
 echo '  > Download thor MQTT service'
 wget -O /etc/systemd/system/thor-mqtt.service -nv $DL_SERVER/preconfigured/thor-mqtt.service
 
-chown $SERVICE_USER:$SERVICE_USER -R /etc/thor
-chown $SERVICE_USER:$SERVICE_USER -R /opt/thor
-
 echo 'Initialise database'
 cd $INSTALLDIR
 $INSTALLDIR/.venv/bin/flask --app thor reset-db
+
+chown $SERVICE_USER:$SERVICE_USER -R /etc/thor
+chown $SERVICE_USER:$SERVICE_USER -R /opt/thor
 
 echo '  > Reload daemon and start service'
 systemctl daemon-reload
