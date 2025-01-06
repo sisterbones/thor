@@ -69,21 +69,21 @@ touch $CONFIGDIR/.env
 
 echo '- Downloading thor...'
 if [[ ! -d "$INSTALLDIR" ]]; then
-    git clone git@github.com:sisterbones/thor.git $INSTALLDIR
+    sudo -u thor git clone git@github.com:sisterbones/thor.git $INSTALLDIR
     cd $INSTALLDIR
-    git submodule update --init --recursive
+    sudo -u thor git submodule update --init --recursive
   else
     echo '  ! Git repo for thor already found. Updating repo...'
     {
       cd $INSTALLDIR
-      git pull --recurse-submodules
+      sudo -u thor git pull --recurse-submodules
       cd ..
     } || {
       echo '  ! Git failed that :(. Downloading it again...'
       rm -rf $INSTALLDIR
-      git clone git@github.com:sisterbones/thor.git $INSTALLDIR
+      sudo -u thor git clone git@github.com:sisterbones/thor.git $INSTALLDIR
       cd $INSTALLDIR
-      git submodule update --init --recursive
+      sudo -u thor git submodule update --init --recursive
     }
 fi
 
