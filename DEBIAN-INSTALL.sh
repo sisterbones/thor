@@ -79,6 +79,7 @@ if [[ ! -d "$INSTALLDIR" ]]; then
       sudo -u $SERVICE_USER git pull --recurse-submodules
       cd ..
     }
+fi
 
 
 echo '  > Create a virtual environment'
