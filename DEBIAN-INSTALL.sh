@@ -69,7 +69,7 @@ touch $CONFIGDIR/.env
 
 echo '- Downloading thor...'
 if [[ ! -d "$INSTALLDIR" ]]; then
-    git clone git@github.com:sisterbones/thor.git $INSTALLDIR
+    git clone https://github.com/sisterbones/thor.git $INSTALLDIR
     cd $INSTALLDIR
     git submodule update --init --recursive
   else
