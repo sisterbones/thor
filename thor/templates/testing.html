@@ -4,6 +4,14 @@
 
 {% block content %}
     <h1>TESTING</h1>
+    <h2>Reset</h2>
+    <button id="reset" class="btn btn-danger">Reset Alert table</button>
+    <script>
+        const resetButton = document.getElementById('reset');
+        resetButton.addEventListener('click', _=>{
+            socket.emit('reset/alerts', true)
+        })
+    </script>
     <h2>Test alerts</h2>
     <h3>Lighting</h3>
     <form id="lightning-alert-form">

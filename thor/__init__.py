@@ -108,6 +108,12 @@ def create_app(use_mqtt=False):
     def mqtt_ask(message):
         ask_common(message, DATA_OUTPUT_MQTT)
 
+    @socketio.on('reset/alerts')
+    def reset_alerts(message):
+        if message:
+            for alert in get_active_alerts(output_type="alert"):
+                remove_alert(alert=alert)
+
     @socketio.on('update/lightning')
     @socketio.on('update/lightning', namespace="/mqtt")
     def sio_update(message):
