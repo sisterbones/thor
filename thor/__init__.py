@@ -113,6 +113,7 @@ def create_app(use_mqtt=False):
         if message:
             for alert in get_active_alerts(output_type="alert"):
                 remove_alert(alert=alert)
+            ask_common("alerts", 3)
 
     @socketio.on('update/lightning')
     @socketio.on('update/lightning', namespace="/mqtt")
