@@ -9,9 +9,9 @@
         <link rel="stylesheet" href="{{ ASSET_URL }}"/>
     {% endassets %}
 
-    <script src="{{ url_for('static', filename='/vendor/bootstrap/dist/js/bootstrap.bundle.min.js') }}"></script>
-    <script src="{{ url_for('static', filename='/vendor/font-awesome/js/fontawesome.js') }}" defer></script>
-    <script src="{{ url_for('static', filename='/vendor/font-awesome/js/solid.js') }}" defer></script>
+    <script src="{{ url_for('static', filename='/vendor/bootstrap/dist/js/bootstrap.bundle.min.js') }}" async></script>
+    <script src="{{ url_for('static', filename='/vendor/font-awesome/js/fontawesome.js') }}" async></script>
+    <script src="{{ url_for('static', filename='/vendor/font-awesome/js/solid.js') }}" async></script>
     <script src="{{ url_for('static', filename='/vendor/socket.io.js') }}"></script>
     {#    <script src="{{ url_for('static', filename='/vendor/esm-module-shims.js') }}"></script>#}
 

@@ -86,7 +86,7 @@
         if (alert.headline) {
             const headline = document.createElement("h4");
             headline.className = "margin-0";
-            if (alert.source & 1<<5) headline.innerText = alert.source_headline;
+            if (alert.source & 1<<5) headline.innerText = alert.level + " " + alert.source_headline;
             else headline.innerText = alert.headline;
             texts.appendChild(headline);
 

@@ -74,7 +74,7 @@ def providers():
     met_form.metenable.data = truthy(db.get_config("MET_NO_ENABLE", False))
 
     metie_form.mewwenable.data = truthy(db.get_config("METIE_WW_ENABLE", False))
-    metie_form.county.data = db.get_config("METIE_WW_COUNTY", "IRELAND")
+    metie_form.county.data = current_app.config["METIE_WEATHERWARNING"].region
 
     return render_template("settings/providers.html", met_form=met_form, metie_form=metie_form)
 
@@ -97,13 +97,7 @@ def providers_metieww():
         # Reset weather warnings
         log.info("Resetting weather warnings...")
         with current_app.app_context():
-            current_app.config['METIE_WEATHERWARNING'].region = form.county.data
-            current_app.config[
-                "METIE_WEATHERWARNING"].baseurl = f'https://www.met.ie/Open_Data/json/warning_{current_app.config["METIE_WEATHERWARNING"].region}.json'
-            current_app.config['METIE_WEATHERWARNING'].last_fetched_time = 0
-        log.debug((DATA_SOURCE_INET | DATA_SOURCE_METEIREANN))
-        for alert in get_active_alerts(output_type="alert", source=(DATA_SOURCE_INET | DATA_SOURCE_METEIREANN)):
-            remove_alert(alert=alert)
+            current_app.config['METIE_WEATHERWARNING'].update(form.county.data)
 
         log.debug("Last updated time was %s", current_app.config['METIE_WEATHERWARNING'].last_fetched_time)
 
@@ -146,6 +140,8 @@ def location():
 
         db.set_config("HOME_LAT", form.location_lat.data)
         db.set_config("HOME_LONG", form.location_long.data)
+
+        current_app.config['METNO_LOCATIONFORECAST'].update(loc.get('location_lat', 0.0), loc.get('location_long', 0.0))
 
         flash("Your changes were saved.")
 

@@ -51,6 +51,8 @@ def message(topic, data):
 def sio_on_connect(data=""):
     log.info("Connected to THOR.")
 
+log.debug("Host: %s:%s, Username:Password: %s:%s", environ.get('MQTT_BROKER', "localhost"), environ.get('MQTT_BROKER_PORT', 1883), environ.get('MQTT_USERNAME', 'thor'), environ.get('MQTT_PASSWORD', None))
+
 mqttc.connect(environ.get('MQTT_BROKER', "localhost"), environ.get('MQTT_BROKER_PORT', 1883))
-mqttc.username_pw_set(environ.get('MQTT_USERNAME', 'thor'), environ.get('MQTT_PASSWORD', ''))
+mqttc.username_pw_set(environ.get('MQTT_USERNAME', None), environ.get('MQTT_PASSWORD', None))
 mqttc.loop_forever()

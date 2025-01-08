@@ -68,8 +68,8 @@ class MetEireannWeatherWarning(Alert):
         self.icon = (self.alert_type == "rain" and "cloud-rain") or \
                     (self.alert_type == "wind" and "wind") or \
                     (self.alert_type == "snow-ice" and "snowflake") or \
-                    (self.alert_type == "low-temperature" and "temperature-arrow-down") or \
-                    (self.alert_type == "high-temperature" and "temperature-arrow-up") or \
+                    ((self.alert_type == "low-temperature" or self.alert_type == "low") and "temperature-arrow-down") or \
+                    ((self.alert_type == "high-temperature" or self.alert_type == "high") and "temperature-arrow-up") or \
                     (self.alert_type == "fog" and GENERIC_WARNING_ICON) or \
                     (self.alert_type == "thunderstorm" and "cloud-bolt") or \
                     (self.alert_type == "advisory" and GENERIC_WARNING_ICON) or \

@@ -9,7 +9,7 @@ from flask import current_app
 from rich.logging import RichHandler
 
 from thor.constants import *
-from thor.alert import MetEireannWeatherWarning, InfoAlert, add_new_alert, Alert, publish_alert, remove_alert
+from thor.alert import MetEireannWeatherWarning, InfoAlert, add_new_alert, Alert, publish_alert, remove_alert, get_active_alerts
 from thor.db import get_config, set_config
 from thor.misc import has_internet_connection
 
@@ -105,11 +105,16 @@ class CachingWeatherProvider(WeatherProvider):
         self.user_agent = "Thor Lightning Detection & Alert System (in development) https://github.com/sisterbones/thor"
         self.query = {}
 
+    def update(self):
+        self.cached_response = None
+
     def fetch(self) -> dict:
         if not has_internet_connection():
             alert = InfoAlert(publisher_id='noinet', headline="No internet connection.", icon="globe-cross")
             add_new_alert(alert)
             return self.cached_response
+        else:
+            remove_alert(publisher_id='noinet')
         if time.time() <= self.last_fetched_time + self.seconds_to_live and self.cached_response:
             log.debug("Serving cache")
             return self.cached_response
@@ -142,6 +147,13 @@ class MetNoWeatherProvider(CachingWeatherProvider):
         self.base_url = 'https://api.met.no/weatherapi/locationforecast/2.0/compact'
         self.query = {"lat": self.lat, "lon": self.long}
 
+    def update(self, lat: float, long: float):
+        super().update()
+
+        self.lat = lat
+        self.long = long
+        self.query = {"lat": self.lat, "lon": self.long}
+
     def fetch(self) -> dict:
         """Fetches data from the MET Norway Location Forcast API"""
 
@@ -155,7 +167,7 @@ class MetNoWeatherProvider(CachingWeatherProvider):
                     "conditions": "unknown",
                     "headline": "No Internet"
                 }
-                    }
+            }
 
         icon = met_no_symbol_to_font_awesome(
             data['properties']['timeseries'][0]['data']['next_12_hours']['summary']['symbol_code'])
@@ -181,8 +193,16 @@ class MetNoWeatherProvider(CachingWeatherProvider):
 class MetEireannWeatherWarningProvider(CachingWeatherProvider):
     def __init__(self, region="IRELAND"):
         super().__init__()
+        self.update(region)
+
+    def update(self, region:str="IRELAND"):
+        super().update()
+
         self.region = region
         self.base_url = f'https://www.met.ie/Open_Data/json/warning_{self.region}.json'
+
+        for alert in get_active_alerts(output_type="alert", source=(DATA_SOURCE_INET | DATA_SOURCE_METEIREANN)):
+            remove_alert(alert=alert)
 
     def fetch(self) -> dict:
         cache = super().fetch()
@@ -223,7 +243,7 @@ class MetEireannWeatherWarningProvider(CachingWeatherProvider):
                 source_description=warning.get("description", ""),
                 regions=warning.get("regions", [self.region]), status=warning.get("status", "warning")
             )
-            add_new_alert(alert)
+            add_new_alert(alert, callback=callback)
 
             warnings.append(alert.__dict__)
 
