@@ -40,9 +40,7 @@ source .venv/bin/activate
 
 This repository includes the following third-party libraries:
 
--
-
-`socket.io-client`, [MIT License](https://github.com/socketio/socket.io/blob/7427109658591e7ce677a183a664d1f5327f37ea/LICENSE),
+- `socket.io-client`, [MIT License](https://github.com/socketio/socket.io/blob/7427109658591e7ce677a183a664d1f5327f37ea/LICENSE),
 Copyright (c) 2014-present Guillermo Rauch and Socket.IO
 contributors, [Source code](https://github.com/socketio/socket.io)
 
