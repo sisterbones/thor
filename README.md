@@ -35,6 +35,17 @@ python -m venv .venv/
 source .venv/bin/activate
 ```
 
+Your shell should now look something like this:
+
+```bash
+(.venv) $
+```
+
+3. Install dependencies
+
+```bash
+pip install -r requirements.txt
+```
 
 # 3rd Party Libraries
 
